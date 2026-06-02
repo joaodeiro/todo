@@ -63,6 +63,8 @@ function mdToHtml(src) {
 function Play() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg> }
 function Pause() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg> }
 function Shield() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /></svg> }
+function Ban() { return <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="m4.9 4.9 14.2 14.2" /></svg> }
+function Trash() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M10 11v6M14 11v6" /></svg> }
 function StatusPill({ status }) {
   const map = { backlog: ['Backlog', '#8C867C'], aguardando: ['Aguardando', '#E6A23C'], fazendo: ['Fazendo', '#378ADD'], concluido: ['Concluído', '#1D9E75'] }
   const [label, color] = map[status || 'backlog'] || map.backlog
@@ -80,6 +82,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
   const [selId, setSelId] = useState(null)
   const [creating, setCreating] = useState(false)
   const [switchTo, setSwitchTo] = useState(null)
+  const [confirmDelId, setConfirmDelId] = useState(null)
   const [dragCol, setDragCol] = useState(null)
   const areaCode = {}; (areas || []).forEach(a => { areaCode[a.id] = a.code })
   const codeToId = {}; (areas || []).forEach(a => { codeToId[a.code] = a.id })
@@ -180,15 +183,29 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
                     onClick={() => router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}>
                     <div className="kc-top">
                       <span className="kcode">{c.legacy_id || (areaCode[c.work_area_id] || '—')}</span>
-                      {c.blocked && <span className="kblk">🚫</span>}
+                      {c.blocked && (
+                        <span className="kc-blktag"><Ban />bloqueado
+                          {(c.block_reason || c.block_note) && <span className="kc-tip">{[c.block_reason, c.block_note].filter(Boolean).join(' — ')}</span>}
+                        </span>
+                      )}
+                      <button className="kc-del" aria-label="excluir" onClick={e => { e.stopPropagation(); setConfirmDelId(c.id) }}><Trash /></button>
                     </div>
                     <div className="kc-title">{c.title}</div>
                     <div className="kc-foot">
-                      <span className={`kc-time ${running ? 'on' : ''}`}>{fmt(Math.max(0, liveSecs(c, now)), running)}</span>
                       <button className={`kc-play ${running ? 'on' : ''}`} onClick={e => { e.stopPropagation(); running ? pause(c) : play(c) }} aria-label={running ? 'pausar' : 'iniciar'}>
                         {running ? <Pause /> : <Play />}
                       </button>
+                      <span className={`kc-time ${running ? 'on' : ''}`}>{fmt(Math.max(0, liveSecs(c, now)), running)}</span>
                     </div>
+                    {confirmDelId === c.id && (
+                      <div className="kc-confirm" onClick={e => e.stopPropagation()}>
+                        <span className="kc-confirm-q">Excluir demanda?</span>
+                        <div className="kc-confirm-btns">
+                          <button onClick={() => setConfirmDelId(null)}>não</button>
+                          <button className="danger" onClick={() => { remove(c.id); setConfirmDelId(null) }}>sim, excluir</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -275,7 +292,7 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
         <div className="dmd-pills">
           <span className="kcode big">{card.legacy_id || '—'}</span>
           <StatusPill status={card.status} />
-          {card.blocked && <span className="dmd-pill-blk">🚫 bloqueado</span>}
+          {card.blocked && <span className="dmd-pill-blk"><Ban /> bloqueado</span>}
         </div>
         <div className="dmd-bar-actions">
           <button className="dmd-ghost" onClick={copyLink}>{copied ? '✓ copiado' : 'copiar link'}</button>

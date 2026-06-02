@@ -168,13 +168,25 @@ input:focus{ outline:none; border-color:var(--heat-a); }
 .ksearch{ flex:1; min-width:150px; padding:8px 12px; font-size:13px; border:.5px solid var(--line); border-radius:10px }
 .kanban{ display:flex; gap:14px; overflow-x:auto; padding-bottom:10px; margin-top:4px }
 .kcol{ flex:0 0 268px; background:rgba(42,39,36,.03); border:.5px solid var(--line); border-radius:14px; padding:12px; min-height:140px }
-.kcard{ display:block; width:100%; text-align:left; background:var(--surface); border:.5px solid var(--line); border-radius:11px; padding:11px 12px; margin-bottom:8px; cursor:pointer; font:inherit; transition:transform 90ms var(--eof) }
+.kcard{ position:relative; display:block; width:100%; text-align:left; background:var(--surface); border:.5px solid var(--line); border-radius:11px; padding:11px 12px; margin-bottom:8px; cursor:pointer; font:inherit; transition:transform 90ms var(--eof) }
 .kcard:active{ transform:scale(.98) }
 .kcard.blk{ border-color:rgba(218,32,55,.45); background:rgba(218,32,55,.04) }
-.kc-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:5px }
-.kcode{ font-size:10.5px; font-weight:600; letter-spacing:.04em; color:var(--heat-b); background:rgba(230,76,40,.08); border-radius:5px; padding:2px 6px }
+.kc-top{ display:flex; align-items:center; gap:6px; margin-bottom:6px }
+.kcode{ font-size:10.5px; font-weight:600; letter-spacing:.04em; color:var(--muted); background:rgba(140,134,124,.14); border-radius:5px; padding:2px 7px; font-variant-numeric:tabular-nums }
 .kcode.big{ font-size:13px; padding:3px 9px }
-.kblk{ font-size:12px }
+/* tag de bloqueio (svg + tooltip) */
+.kc-blktag{ position:relative; display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:600; letter-spacing:.02em; color:var(--heat-b); background:rgba(218,32,55,.09); border:.5px solid rgba(218,32,55,.28); border-radius:5px; padding:2px 7px; cursor:default }
+.kc-tip{ position:absolute; top:calc(100% + 6px); left:0; z-index:30; min-width:150px; max-width:230px; background:var(--ink); color:var(--surface); font-size:11.5px; font-weight:400; line-height:1.42; letter-spacing:0; border-radius:8px; padding:8px 10px; box-shadow:0 8px 24px rgba(0,0,0,.24); opacity:0; transform:translateY(-3px); pointer-events:none; transition:opacity .14s, transform .14s; white-space:normal }
+.kc-blktag:hover .kc-tip{ opacity:1; transform:translateY(0) }
+/* excluir direto no card */
+.kc-del{ margin-left:auto; display:flex; align-items:center; justify-content:center; width:24px; height:24px; border:none; background:none; color:var(--muted); cursor:pointer; opacity:0; border-radius:7px; padding:0; transition:opacity .12s, background .12s, color .12s }
+.kcard:hover .kc-del{ opacity:.6 }
+.kc-del:hover{ opacity:1; background:rgba(218,32,55,.1); color:#DA2037 }
+.kc-confirm{ position:absolute; inset:0; background:var(--surface); border-radius:11px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:11px; padding:12px; text-align:center; z-index:6 }
+.kc-confirm-q{ font-size:13px; font-weight:600; color:var(--ink) }
+.kc-confirm-btns{ display:flex; gap:8px }
+.kc-confirm-btns button{ border:.5px solid var(--line); background:var(--bg); border-radius:8px; padding:6px 12px; font:inherit; font-size:12.5px; cursor:pointer; color:var(--ink) }
+.kc-confirm-btns button.danger{ background:#DA2037; border-color:#DA2037; color:#fff; font-weight:600 }
 .kc-title{ font-size:13.5px; line-height:1.35 }
 .kmodal{ background:var(--surface); border-radius:20px; padding:24px; width:100%; max-width:420px; box-shadow:0 30px 90px rgba(42,39,36,.28) }
 .km-head{ display:flex; align-items:center; gap:10px; margin-bottom:12px }
@@ -235,7 +247,7 @@ select.sel-sm{ font-size:12px; padding:5px 24px 5px 9px; border-radius:8px; back
 .kadd2{ margin:0 0 18px }
 .knew{ border:.5px solid var(--line); background:var(--surface); border-radius:11px; padding:10px 16px; font:inherit; font-size:14px; cursor:pointer; color:var(--ink) }
 .knew:hover{ border-color:rgba(42,39,36,.22) }
-.kc-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:9px }
+.kc-foot{ display:flex; align-items:center; justify-content:flex-start; gap:8px; margin-top:9px }
 .kc-time{ font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums }
 .kc-time.on{ color:var(--heat-b); font-weight:600 }
 .kc-play{ display:flex; align-items:center; justify-content:center; width:24px; height:24px; border:.5px solid var(--line); border-radius:7px; background:var(--surface); color:var(--ink); cursor:pointer; padding:0 }
