@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createCardFull, moveCard, setBlocked, updateCard, deleteItem, startTimer, stopTimer, addTime, listTimeEntries } from '@/app/actions'
+import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
 
 const COLS = [
   { key: 'backlog', label: 'Backlog' },
@@ -25,6 +26,38 @@ function liveSecs(c, now) {
   const base = c.secs || 0
   if (c.timer_started_at) return base + Math.max(0, Math.floor((now - Date.parse(c.timer_started_at)) / 1000))
   return base
+}
+function fmtSize(n) { n = n || 0; if (n < 1024) return n + ' B'; if (n < 1048576) return (n / 1024).toFixed(0) + ' KB'; return (n / 1048576).toFixed(1) + ' MB' }
+function mdToHtml(src) {
+  if (!src) return ''
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const inline = t => esc(t)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\((https?:[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
+  const lines = src.replace(/\r\n/g, '\n').split('\n')
+  let out = '', ul = false, ol = false, code = false, buf = ''
+  const closeLists = () => { if (ul) { out += '</ul>'; ul = false } if (ol) { out += '</ol>'; ol = false } }
+  for (const raw of lines) {
+    if (/^```/.test(raw)) {
+      if (code) { out += '<pre class="md-code">' + esc(buf) + '</pre>'; buf = ''; code = false }
+      else { closeLists(); code = true }
+      continue
+    }
+    if (code) { buf += raw + '\n'; continue }
+    if (/^\s*$/.test(raw)) { closeLists(); continue }
+    let m
+    if ((m = raw.match(/^(#{1,4})\s+(.*)$/))) { closeLists(); const n = m[1].length; out += `<h${n}>${inline(m[2])}</h${n}>`; continue }
+    if (/^\s*([-*])\s+/.test(raw)) { if (!ul) { closeLists(); out += '<ul>'; ul = true } out += '<li>' + inline(raw.replace(/^\s*[-*]\s+/, '')) + '</li>'; continue }
+    if (/^\s*\d+\.\s+/.test(raw)) { if (!ol) { closeLists(); out += '<ol>'; ol = true } out += '<li>' + inline(raw.replace(/^\s*\d+\.\s+/, '')) + '</li>'; continue }
+    if (/^\s*>\s?/.test(raw)) { closeLists(); out += '<blockquote>' + inline(raw.replace(/^\s*>\s?/, '')) + '</blockquote>'; continue }
+    if (/^\s*([-*_])\1{2,}\s*$/.test(raw)) { closeLists(); out += '<hr>'; continue }
+    closeLists(); out += '<p>' + inline(raw) + '</p>'
+  }
+  if (code) out += '<pre class="md-code">' + esc(buf) + '</pre>'
+  closeLists()
+  return out
 }
 function Play() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg> }
 function Pause() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg> }
@@ -167,59 +200,163 @@ function CardModal({ card, now, areas, areaCode, onClose, onMove, onSetStatus, o
   const [areaSel, setAreaSel] = useState(areaCode[card.work_area_id] || '')
   const [contexto, setContexto] = useState(card.notes || '')
   const [confirmDel, setConfirmDel] = useState(false)
+  const [supabase] = useState(() => createBrowserSupabase())
+  const [atts, setAtts] = useState(null)
+  const [lightbox, setLightbox] = useState(null)
+  const [doc, setDoc] = useState(null)
   const i = ORDER.indexOf(card.status || 'backlog')
   const origemUrl = (card.origem || '').match(/^https?:\/\//) ? card.origem : null
+
+  async function loadAtts() {
+    const { data } = await supabase.from('attachment').select('*').eq('item_id', card.id).order('created_at')
+    const rows = data || []
+    const withUrls = await Promise.all(rows.map(async r => {
+      if (r.kind === 'image') {
+        const { data: s } = await supabase.storage.from('attachments').createSignedUrl(r.path, 3600)
+        return { ...r, url: s?.signedUrl || null }
+      }
+      return r
+    }))
+    setAtts(withUrls)
+  }
+  useEffect(() => { loadAtts() }, [card.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function addFiles(fileList) {
+    const files = Array.from(fileList || [])
+    for (const file of files) {
+      const ext = (file.name.split('.').pop() || '').toLowerCase()
+      const mime = file.type || ''
+      let kind = 'text'
+      if (mime.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'].includes(ext)) kind = 'image'
+      else if (ext === 'md' || ext === 'markdown') kind = 'md'
+      const path = `${card.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const { error } = await supabase.storage.from('attachments').upload(path, file, { contentType: mime || undefined })
+      if (error) { console.error('upload', error); continue }
+      await supabase.from('attachment').insert({ item_id: card.id, kind, filename: file.name, mime, size: file.size, path })
+    }
+    loadAtts()
+  }
+  async function delAtt(a) {
+    setAtts(s => (s || []).filter(x => x.id !== a.id))
+    await supabase.storage.from('attachments').remove([a.path])
+    await supabase.from('attachment').delete().eq('id', a.id)
+  }
+  async function openAtt(a) {
+    if (a.kind === 'image') { setLightbox(a.url); return }
+    const { data } = await supabase.storage.from('attachments').download(a.path)
+    const text = data ? await data.text() : ''
+    setDoc({ name: a.filename, kind: a.kind, text })
+  }
+
   return (
-    <div className="badge-overlay" onClick={onClose}>
-      <div className="kmodal kmodal-xl" onClick={e => e.stopPropagation()}>
-        <div className="km-top">
-          <span className="kcode big">{card.legacy_id || '—'}</span>
-          <div className="km-top-actions">
-            {confirmDel ? (
-              <><span className="km-confirm">Excluir mesmo?</span><button className="link" onClick={() => setConfirmDel(false)}>não</button><button className="km-del" onClick={() => onDelete(card.id)}>sim, excluir</button></>
-            ) : (
-              <><button className="km-del" onClick={() => setConfirmDel(true)}>excluir</button><button className="km-save" onClick={() => onSave(card.id, { title, areaCode: areaSel, contexto })}>salvar</button></>
-            )}
-          </div>
-        </div>
-        <div className="km-tabs">
-          <button className={`km-tab ${tab === 'geral' ? 'on' : ''}`} onClick={() => setTab('geral')}>Visão geral</button>
-          <button className={`km-tab ${tab === 'tempo' ? 'on' : ''}`} onClick={() => setTab('tempo')}>Tempo · {fmt(Math.max(0, liveSecs(card, now)))}</button>
-        </div>
-        {tab === 'geral' ? (
-          <div className="km-grid">
-            <div className="km-main">
-              <input className="km-h" value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da demanda" />
-              <div className="km-lbl">Resumo — o que precisa ser feito</div>
-              <textarea className="km-ta" rows={5} value={contexto} onChange={e => setContexto(e.target.value)} placeholder="Descreva a demanda…" />
-              <div className="km-lbl">De onde veio</div>
-              {origemUrl
-                ? <a className="km-src" href={origemUrl} target="_blank" rel="noreferrer">{card.origem} ↗</a>
-                : <div className="km-src">{card.origem || '—'}</div>}
-              <div className="km-move">
-                <button onClick={() => onMove(card.id, -1)} disabled={i === 0}>← voltar</button>
-                <button onClick={() => onMove(card.id, 1)} disabled={i === ORDER.length - 1}>avançar →</button>
-              </div>
+    <>
+      <div className="badge-overlay" onClick={onClose}>
+        <div className="kmodal kmodal-xl" onClick={e => e.stopPropagation()}>
+          <div className="km-top">
+            <span className="kcode big">{card.legacy_id || '—'}</span>
+            <div className="km-top-actions">
+              {confirmDel ? (
+                <><span className="km-confirm">Excluir mesmo?</span><button className="link" onClick={() => setConfirmDel(false)}>não</button><button className="km-del" onClick={() => onDelete(card.id)}>sim, excluir</button></>
+              ) : (
+                <><button className="km-del" onClick={() => setConfirmDel(true)}>excluir</button><button className="km-save" onClick={() => onSave(card.id, { title, areaCode: areaSel, contexto })}>salvar</button></>
+              )}
             </div>
-            <aside className="km-side">
-              <div className="km-prop"><span className="km-pk">Status</span>
-                <select className="sel sel-sm" value={card.status || 'backlog'} onChange={e => onSetStatus(card.id, e.target.value)}>
-                  {COLS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-                </select>
-              </div>
-              <div className="km-prop"><span className="km-pk">Área</span>
-                <select className="sel sel-sm" value={areaSel} onChange={e => setAreaSel(e.target.value)}>
-                  <option value="">—</option>
-                  {(areas || []).map(a => <option key={a.code} value={a.code}>{a.code}</option>)}
-                </select>
-              </div>
-              <BlockersPanel card={card} onBlock={onBlock} />
-            </aside>
           </div>
-        ) : (
-          <TempoTab card={card} now={now} onPlay={onPlay} onPause={onPause} onAddTime={onAddTime} />
-        )}
+          <div className="km-tabs">
+            <button className={`km-tab ${tab === 'geral' ? 'on' : ''}`} onClick={() => setTab('geral')}>Visão geral</button>
+            <button className={`km-tab ${tab === 'tempo' ? 'on' : ''}`} onClick={() => setTab('tempo')}>Tempo · {fmt(Math.max(0, liveSecs(card, now)))}</button>
+            <button className={`km-tab ${tab === 'anexos' ? 'on' : ''}`} onClick={() => setTab('anexos')}>Anexos · {atts ? atts.length : 0}</button>
+          </div>
+          {tab === 'geral' && (
+            <div className="km-grid">
+              <div className="km-main">
+                <input className="km-h" value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da demanda" />
+                <div className="km-lbl">Resumo — o que precisa ser feito</div>
+                <textarea className="km-ta" rows={5} value={contexto} onChange={e => setContexto(e.target.value)} placeholder="Descreva a demanda…" />
+                <div className="km-lbl">De onde veio</div>
+                {origemUrl
+                  ? <a className="km-src" href={origemUrl} target="_blank" rel="noreferrer">{card.origem} ↗</a>
+                  : <div className="km-src">{card.origem || '—'}</div>}
+                <div className="km-move">
+                  <button onClick={() => onMove(card.id, -1)} disabled={i === 0}>← voltar</button>
+                  <button onClick={() => onMove(card.id, 1)} disabled={i === ORDER.length - 1}>avançar →</button>
+                </div>
+              </div>
+              <aside className="km-side">
+                <div className="km-prop"><span className="km-pk">Status</span>
+                  <select className="sel sel-sm" value={card.status || 'backlog'} onChange={e => onSetStatus(card.id, e.target.value)}>
+                    {COLS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div className="km-prop"><span className="km-pk">Área</span>
+                  <select className="sel sel-sm" value={areaSel} onChange={e => setAreaSel(e.target.value)}>
+                    <option value="">—</option>
+                    {(areas || []).map(a => <option key={a.code} value={a.code}>{a.code}</option>)}
+                  </select>
+                </div>
+                <BlockersPanel card={card} onBlock={onBlock} />
+              </aside>
+            </div>
+          )}
+          {tab === 'tempo' && <TempoTab card={card} now={now} onPlay={onPlay} onPause={onPause} onAddTime={onAddTime} />}
+          {tab === 'anexos' && <AnexosTab atts={atts} onAdd={addFiles} onDelete={delAtt} onOpen={openAtt} />}
+        </div>
       </div>
+      {lightbox && <div className="lightbox" onClick={() => setLightbox(null)}><img src={lightbox} alt="" /></div>}
+      {doc && (
+        <div className="badge-overlay" onClick={() => setDoc(null)}>
+          <div className="docview" onClick={e => e.stopPropagation()}>
+            <div className="docview-top"><span className="docview-name">{doc.name}</span><button className="link" onClick={() => setDoc(null)}>fechar</button></div>
+            {doc.kind === 'md'
+              ? <div className="docview-md" dangerouslySetInnerHTML={{ __html: mdToHtml(doc.text) }} />
+              : <pre className="docview-pre">{doc.text}</pre>}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function AnexosTab({ atts, onAdd, onDelete, onOpen }) {
+  const [over, setOver] = useState(false)
+  const images = (atts || []).filter(a => a.kind === 'image')
+  const files = (atts || []).filter(a => a.kind !== 'image')
+  return (
+    <div className="anx">
+      <label
+        className={`anx-drop ${over ? 'over' : ''}`}
+        onDragOver={e => { e.preventDefault(); setOver(true) }}
+        onDragLeave={() => setOver(false)}
+        onDrop={e => { e.preventDefault(); setOver(false); onAdd(e.dataTransfer.files) }}>
+        <input type="file" multiple accept="image/*,.md,.markdown,.txt,text/*" hidden onChange={e => { onAdd(e.target.files); e.target.value = '' }} />
+        <div className="anx-drop-ico">⬆</div>
+        <div className="anx-drop-t">Arraste arquivos aqui ou clique pra escolher</div>
+        <div className="anx-drop-s">imagens · .md · .txt</div>
+      </label>
+      {atts === null && <div className="anx-empty">carregando…</div>}
+      {atts && atts.length === 0 && <div className="anx-empty">Nenhum anexo ainda.</div>}
+      {images.length > 0 && (
+        <div className="anx-grid">
+          {images.map(a => (
+            <div key={a.id} className="anx-thumb" onClick={() => onOpen(a)}>
+              {a.url ? <img src={a.url} alt={a.filename} /> : <div className="anx-thumb-x">imagem</div>}
+              <button className="anx-del" onClick={e => { e.stopPropagation(); onDelete(a) }} aria-label="excluir">×</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {files.length > 0 && (
+        <div className="anx-files">
+          {files.map(a => (
+            <div key={a.id} className="anx-file" onClick={() => onOpen(a)}>
+              <span className="anx-file-ico">{a.kind === 'md' ? 'MD' : 'TXT'}</span>
+              <span className="anx-file-name">{a.filename}</span>
+              <span className="anx-file-sz">{fmtSize(a.size)}</span>
+              <button className="anx-del2" onClick={e => { e.stopPropagation(); onDelete(a) }}>excluir</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

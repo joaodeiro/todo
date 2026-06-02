@@ -293,6 +293,45 @@ a.km-src{ color:var(--heat-b) }
 .sw-keep{ background:var(--heat-a); color:#fff; border:none; font-weight:600 }
 .sw-switch{ background:var(--bg); border:.5px solid var(--line); color:var(--ink) }
 .sw-keep:active,.sw-switch:active{ transform:scale(.98) }
+/* anexos */
+.anx{ display:flex; flex-direction:column; gap:16px }
+.anx-drop{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; text-align:center; border:1.5px dashed var(--line); border-radius:14px; padding:26px 16px; cursor:pointer; background:var(--bg); transition:border-color .15s, background .15s }
+.anx-drop:hover,.anx-drop.over{ border-color:var(--heat-a); background:rgba(230,76,40,.05) }
+.anx-drop-ico{ font-size:22px; color:var(--muted); line-height:1 }
+.anx-drop-t{ font-size:13.5px; color:var(--ink) }
+.anx-drop-s{ font-size:11.5px; color:var(--muted); letter-spacing:.03em }
+.anx-empty{ font-size:13px; color:var(--muted); padding:6px 0 }
+.anx-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:10px }
+.anx-thumb{ position:relative; aspect-ratio:1; border:.5px solid var(--line); border-radius:11px; overflow:hidden; cursor:pointer; background:var(--bg) }
+.anx-thumb img{ width:100%; height:100%; object-fit:cover; display:block }
+.anx-thumb-x{ display:flex; align-items:center; justify-content:center; height:100%; font-size:12px; color:var(--muted) }
+.anx-del{ position:absolute; top:5px; right:5px; width:22px; height:22px; border:none; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; font-size:15px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .12s }
+.anx-thumb:hover .anx-del{ opacity:1 }
+.anx-files{ display:flex; flex-direction:column; gap:7px }
+.anx-file{ display:flex; align-items:center; gap:11px; padding:10px 12px; border:.5px solid var(--line); border-radius:11px; background:var(--surface); cursor:pointer; transition:border-color .12s }
+.anx-file:hover{ border-color:rgba(42,39,36,.22) }
+.anx-file-ico{ font-size:10px; font-weight:700; letter-spacing:.05em; color:#fff; background:var(--heat-a); border-radius:5px; padding:3px 6px; flex:none }
+.anx-file-name{ flex:1; font-size:13.5px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.anx-file-sz{ font-size:11.5px; color:var(--muted); flex:none }
+.anx-del2{ background:none; border:none; color:#DA2037; font:inherit; font-size:12px; cursor:pointer; flex:none }
+/* lightbox de imagem */
+.lightbox{ position:fixed; inset:0; z-index:120; background:rgba(0,0,0,.82); display:flex; align-items:center; justify-content:center; padding:32px; cursor:zoom-out }
+.lightbox img{ max-width:100%; max-height:100%; border-radius:8px; box-shadow:0 18px 50px rgba(0,0,0,.5) }
+/* preview de md/texto */
+.docview{ background:var(--surface); border:.5px solid var(--line); border-radius:16px; width:100%; max-width:680px; max-height:84vh; overflow:auto; padding:22px 24px }
+.docview-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; border-bottom:.5px solid var(--line); padding-bottom:12px }
+.docview-name{ font-size:14px; font-weight:600; color:var(--ink) }
+.docview-pre{ white-space:pre-wrap; word-break:break-word; font-size:13px; line-height:1.55; color:var(--ink); font-family:ui-monospace,SFMono-Regular,Menlo,monospace }
+.docview-md{ font-size:14px; line-height:1.6; color:var(--ink) }
+.docview-md h1,.docview-md h2,.docview-md h3,.docview-md h4{ font-family:Georgia,'Times New Roman',serif; margin:16px 0 8px; line-height:1.25; font-weight:600 }
+.docview-md h1{ font-size:22px } .docview-md h2{ font-size:19px } .docview-md h3{ font-size:16px } .docview-md h4{ font-size:14px }
+.docview-md p{ margin:8px 0 }
+.docview-md ul,.docview-md ol{ margin:8px 0 8px 20px } .docview-md li{ margin:3px 0 }
+.docview-md code{ background:var(--bg); border:.5px solid var(--line); border-radius:5px; padding:1px 5px; font-size:12.5px; font-family:ui-monospace,Menlo,monospace }
+.docview-md pre.md-code{ background:var(--bg); border:.5px solid var(--line); border-radius:9px; padding:12px; overflow:auto; font-size:12.5px; line-height:1.5; margin:10px 0 }
+.docview-md blockquote{ border-left:3px solid var(--line); padding-left:12px; color:var(--muted); margin:8px 0 }
+.docview-md a{ color:var(--heat-b); text-decoration:underline }
+.docview-md hr{ border:none; border-top:.5px solid var(--line); margin:14px 0 }
 
 /* galeria em linhas (Netflix) + raridade */
 .trrow{ display:block; margin:22px 0 4px }
