@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { createCardFull, moveCard, setBlocked, updateCard, deleteItem, startTimer, stopTimer, addTime, listTimeEntries } from '@/app/actions'
 import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
 
@@ -62,8 +63,14 @@ function mdToHtml(src) {
 function Play() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg> }
 function Pause() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg> }
 function Shield() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /></svg> }
+function StatusPill({ status }) {
+  const map = { backlog: ['Backlog', '#8C867C'], aguardando: ['Aguardando', '#E6A23C'], fazendo: ['Fazendo', '#378ADD'], concluido: ['Concluído', '#1D9E75'] }
+  const [label, color] = map[status || 'backlog'] || map.backlog
+  return <span className="dmd-pill"><span className="dmd-pill-dot" style={{ background: color }} />{label}</span>
+}
 
 export function KanbanBoard({ initialCards, areas, timeTotals }) {
+  const router = useRouter()
   const tt = timeTotals || {}
   const [cards, setCards] = useState((initialCards || []).map(c => ({ ...c, secs: tt[c.id] || 0 })))
   const [now, setNow] = useState(Date.now())
@@ -168,7 +175,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
                 const running = !!c.timer_started_at
                 return (
                   <div key={c.id} className={`kcard ${c.blocked ? 'blk' : ''} ${col.key === 'concluido' ? 'done' : ''}`}
-                    draggable onDragStart={e => e.dataTransfer.setData('text/plain', c.id)} onClick={() => setSelId(c.id)}>
+                    draggable onDragStart={e => e.dataTransfer.setData('text/plain', c.id)} onClick={() => router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}>
                     <div className="kc-top">
                       <span className="kcode">{c.legacy_id || (areaCode[c.work_area_id] || '—')}</span>
                       {c.blocked && <span className="kblk">🚫</span>}
@@ -194,7 +201,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
   )
 }
 
-export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, onBlock, onSave, onDelete, onPlay, onPause, onAddTime, openHref }) {
+export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, onBlock, onSave, onDelete, onPlay, onPause, onAddTime }) {
   const [tab, setTab] = useState('geral')
   const [title, setTitle] = useState(card.title || '')
   const [areaSel, setAreaSel] = useState(areaCode[card.work_area_id] || '')
@@ -206,6 +213,10 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
   const [doc, setDoc] = useState(null)
   const i = ORDER.indexOf(card.status || 'backlog')
   const origemUrl = (card.origem || '').match(/^https?:\/\//) ? card.origem : null
+  const titleRef = useRef(null)
+  const [copied, setCopied] = useState(false)
+  useEffect(() => { const el = titleRef.current; if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' } }, [title])
+  function copyLink() { try { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch (e) {} }
 
   async function loadAtts() {
     const { data } = await supabase.from('attachment').select('*').eq('item_id', card.id).order('created_at')
@@ -257,56 +268,76 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
   }
 
   return (
-    <>
-      <div className="km-top">
-        <span className="kcode big">{card.legacy_id || '—'}</span>
-        <div className="km-top-actions">
-          {openHref && <a className="km-open" href={openHref}>↗ página</a>}
-              {confirmDel ? (
-                <><span className="km-confirm">Excluir mesmo?</span><button className="link" onClick={() => setConfirmDel(false)}>não</button><button className="km-del" onClick={() => onDelete(card.id)}>sim, excluir</button></>
-              ) : (
-                <><button className="km-del" onClick={() => setConfirmDel(true)}>excluir</button><button className="km-save" onClick={() => onSave(card.id, { title, areaCode: areaSel, contexto })}>salvar</button></>
-              )}
-            </div>
-          </div>
-          <div className="km-tabs">
-            <button className={`km-tab ${tab === 'geral' ? 'on' : ''}`} onClick={() => setTab('geral')}>Visão geral</button>
-            <button className={`km-tab ${tab === 'tempo' ? 'on' : ''}`} onClick={() => setTab('tempo')}>Tempo · {fmt(Math.max(0, liveSecs(card, now)))}</button>
-            <button className={`km-tab ${tab === 'anexos' ? 'on' : ''}`} onClick={() => setTab('anexos')}>Anexos · {atts ? atts.length : 0}</button>
-          </div>
+    <div className="dmd">
+      <div className="dmd-bar">
+        <div className="dmd-pills">
+          <span className="kcode big">{card.legacy_id || '—'}</span>
+          <StatusPill status={card.status} />
+          {card.blocked && <span className="dmd-pill-blk">🚫 bloqueado</span>}
+        </div>
+        <div className="dmd-bar-actions">
+          <button className="dmd-ghost" onClick={copyLink}>{copied ? '✓ copiado' : 'copiar link'}</button>
+          {confirmDel ? (
+            <><span className="km-confirm">Excluir mesmo?</span><button className="link" onClick={() => setConfirmDel(false)}>não</button><button className="km-del" onClick={() => onDelete(card.id)}>sim, excluir</button></>
+          ) : (
+            <><button className="km-del" onClick={() => setConfirmDel(true)}>excluir</button><button className="km-save" onClick={() => onSave(card.id, { title, areaCode: areaSel, contexto })}>salvar</button></>
+          )}
+        </div>
+      </div>
+
+      <textarea ref={titleRef} className="dmd-title" rows={1} value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da demanda" />
+      <div className="dmd-metarow">
+        <span>{areaSel || 'sem área'}</span><span className="dmd-sep">·</span>
+        <span>{card.origem || 'sem origem'}</span><span className="dmd-sep">·</span>
+        <span>⏱ {fmt(Math.max(0, liveSecs(card, now)))}</span>
+      </div>
+
+      <div className="dmd-tabs">
+        <button className={`dmd-tab ${tab === 'geral' ? 'on' : ''}`} onClick={() => setTab('geral')}>Visão geral</button>
+        <button className={`dmd-tab ${tab === 'tempo' ? 'on' : ''}`} onClick={() => setTab('tempo')}>Tempo · {fmt(Math.max(0, liveSecs(card, now)))}</button>
+        <button className={`dmd-tab ${tab === 'anexos' ? 'on' : ''}`} onClick={() => setTab('anexos')}>Anexos · {atts ? atts.length : 0}</button>
+      </div>
+
+      <div className="dmd-grid">
+        <div className="dmd-main">
           {tab === 'geral' && (
-            <div className="km-grid">
-              <div className="km-main">
-                <input className="km-h" value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da demanda" />
-                <div className="km-lbl">Resumo — o que precisa ser feito</div>
-                <textarea className="km-ta" rows={5} value={contexto} onChange={e => setContexto(e.target.value)} placeholder="Descreva a demanda…" />
-                <div className="km-lbl">De onde veio</div>
-                {origemUrl
-                  ? <a className="km-src" href={origemUrl} target="_blank" rel="noreferrer">{card.origem} ↗</a>
-                  : <div className="km-src">{card.origem || '—'}</div>}
-                <div className="km-move">
-                  <button onClick={() => onMove(card.id, -1)} disabled={i === 0}>← voltar</button>
-                  <button onClick={() => onMove(card.id, 1)} disabled={i === ORDER.length - 1}>avançar →</button>
-                </div>
+            <>
+              <div className="dmd-lbl">Resumo — o que precisa ser feito</div>
+              <textarea className="dmd-resumo" rows={7} value={contexto} onChange={e => setContexto(e.target.value)} placeholder="Descreva a demanda…" />
+              <div className="dmd-lbl">De onde veio</div>
+              {origemUrl
+                ? <a className="km-src" href={origemUrl} target="_blank" rel="noreferrer">{card.origem} ↗</a>
+                : <div className="km-src">{card.origem || '—'}</div>}
+              <div className="dmd-move">
+                <button onClick={() => onMove(card.id, -1)} disabled={i === 0}>← voltar</button>
+                <button onClick={() => onMove(card.id, 1)} disabled={i === ORDER.length - 1}>avançar →</button>
               </div>
-              <aside className="km-side">
-                <div className="km-prop"><span className="km-pk">Status</span>
-                  <select className="sel sel-sm" value={card.status || 'backlog'} onChange={e => onSetStatus(card.id, e.target.value)}>
-                    {COLS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-                  </select>
-                </div>
-                <div className="km-prop"><span className="km-pk">Área</span>
-                  <select className="sel sel-sm" value={areaSel} onChange={e => setAreaSel(e.target.value)}>
-                    <option value="">—</option>
-                    {(areas || []).map(a => <option key={a.code} value={a.code}>{a.code}</option>)}
-                  </select>
-                </div>
-                <BlockersPanel card={card} onBlock={onBlock} />
-              </aside>
-            </div>
+            </>
           )}
           {tab === 'tempo' && <TempoTab card={card} now={now} onPlay={onPlay} onPause={onPause} onAddTime={onAddTime} />}
           {tab === 'anexos' && <AnexosTab atts={atts} onAdd={addFiles} onAddLink={addLink} onDelete={delAtt} onOpen={openAtt} />}
+        </div>
+
+        <aside className="dmd-side">
+          <div className="dmd-props">
+            <div className="dmd-prop"><span className="dmd-pk">Status</span>
+              <select className="sel sel-sm" value={card.status || 'backlog'} onChange={e => onSetStatus(card.id, e.target.value)}>
+                {COLS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+            </div>
+            <div className="dmd-prop"><span className="dmd-pk">Área</span>
+              <select className="sel sel-sm" value={areaSel} onChange={e => setAreaSel(e.target.value)}>
+                <option value="">—</option>
+                {(areas || []).map(a => <option key={a.code} value={a.code}>{a.code}</option>)}
+              </select>
+            </div>
+            <div className="dmd-prop"><span className="dmd-pk">Tempo</span><span className="dmd-pv">{fmt(Math.max(0, liveSecs(card, now)))}</span></div>
+            <div className="dmd-prop"><span className="dmd-pk">Anexos</span><span className="dmd-pv">{atts ? atts.length : 0}</span></div>
+          </div>
+          <BlockersPanel card={card} onBlock={onBlock} />
+        </aside>
+      </div>
+
       {lightbox && <div className="lightbox" onClick={() => setLightbox(null)}><img src={lightbox} alt="" /></div>}
       {doc && (
         <div className="badge-overlay" onClick={() => setDoc(null)}>
@@ -318,7 +349,7 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
 

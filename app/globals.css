@@ -343,10 +343,41 @@ a.km-src{ color:var(--heat-b) }
 .anx-ico-link{ background:var(--heat-b) }
 .anx-link-a{ color:var(--heat-b); text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .anx-link-a:hover{ text-decoration:underline }
-/* página da demanda (URL própria) */
-.demand-page{ padding-top:28px }
-.demand-shell{ background:var(--surface); border:.5px solid var(--line); border-radius:18px; padding:26px 28px; box-shadow:0 12px 38px rgba(42,39,36,.06); margin-top:14px; max-width:880px }
-@media (max-width:640px){ .demand-shell{ padding:18px } }
+/* página da demanda (URL própria) — layout Laminar, 2 colunas */
+.demand-page{ padding-top:26px }
+.dmd-bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:6px 0 20px }
+.dmd-pills{ display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+.dmd-bar-actions{ display:flex; align-items:center; gap:10px }
+.dmd-ghost{ background:none; border:.5px solid var(--line); border-radius:9px; padding:7px 13px; font:inherit; font-size:13px; color:var(--ink); cursor:pointer }
+.dmd-ghost:hover{ border-color:rgba(42,39,36,.22) }
+.dmd-pill{ display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink); background:var(--surface); border:.5px solid var(--line); border-radius:999px; padding:4px 12px }
+.dmd-pill-dot{ width:7px; height:7px; border-radius:50%; flex:none }
+.dmd-pill-blk{ display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--heat-b); background:rgba(218,32,55,.08); border:.5px solid rgba(218,32,55,.3); border-radius:999px; padding:4px 12px }
+.dmd-title{ display:block; width:100%; border:none; background:none; resize:none; overflow:hidden; font-family:Georgia,'Times New Roman',serif; font-size:32px; font-weight:500; line-height:1.2; color:var(--ink); padding:0; margin:0 0 14px }
+.dmd-title:focus{ outline:none }
+.dmd-metarow{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin-bottom:24px }
+.dmd-sep{ opacity:.45 }
+.dmd-tabs{ display:flex; gap:24px; border-bottom:.5px solid var(--line); margin-bottom:26px }
+.dmd-tab{ background:none; border:none; padding:0 0 11px; font:inherit; font-size:14px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px }
+.dmd-tab.on{ color:var(--ink); font-weight:500; border-bottom-color:var(--ink) }
+.dmd-grid{ display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:44px; align-items:start }
+.dmd-main{ min-width:0 }
+.dmd-lbl{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 9px }
+.dmd-lbl:not(:first-child){ margin-top:24px }
+.dmd-resumo{ width:100%; padding:14px 16px; border:.5px solid var(--line); border-radius:12px; font:inherit; font-size:14.5px; line-height:1.55; background:var(--surface); color:var(--ink); resize:vertical }
+.dmd-resumo:focus{ outline:none; border-color:var(--heat-a) }
+.dmd-move{ display:flex; gap:10px; margin-top:20px }
+.dmd-move button{ flex:1; padding:11px; border:.5px solid var(--line); background:var(--surface); border-radius:10px; font:inherit; font-size:13px; cursor:pointer; color:var(--ink) }
+.dmd-move button:hover:not(:disabled){ border-color:rgba(42,39,36,.22) }
+.dmd-move button:disabled{ opacity:.3 }
+.dmd-side{ display:flex; flex-direction:column; gap:18px; position:sticky; top:20px }
+.dmd-props{ background:var(--surface); border:.5px solid var(--line); border-radius:14px; padding:4px 16px }
+.dmd-prop{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 0; border-bottom:.5px solid var(--line); min-height:30px }
+.dmd-prop:last-child{ border-bottom:none }
+.dmd-pk{ font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted) }
+.dmd-pv{ font-size:13.5px; color:var(--ink); font-variant-numeric:tabular-nums }
+.dmd-side .blk-panel{ border-top:none; padding-top:0 }
+@media (max-width:760px){ .dmd-grid{ grid-template-columns:1fr; gap:26px } .dmd-side{ position:static } }
 
 /* galeria em linhas (Netflix) + raridade */
 .trrow{ display:block; margin:22px 0 4px }

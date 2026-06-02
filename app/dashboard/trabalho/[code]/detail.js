@@ -46,12 +46,10 @@ export function DemandPage({ initialCard, areas }) {
   return (
     <main className="dash wide demand-page">
       <Link href="/dashboard/trabalho" className="back">← Kanban</Link>
-      <div className="demand-shell">
-        <DemandDetail
-          card={card} now={now} areas={areas} areaCode={areaCode}
-          onMove={move} onSetStatus={setStatus} onBlock={block} onSave={save} onDelete={remove}
-          onPlay={play} onPause={pause} onAddTime={addManual} />
-      </div>
+      <DemandDetail
+        card={card} now={now} areas={areas} areaCode={areaCode}
+        onMove={move} onSetStatus={setStatus} onBlock={block} onSave={save} onDelete={remove}
+        onPlay={play} onPause={pause} onAddTime={addManual} />
     </main>
   )
 }
