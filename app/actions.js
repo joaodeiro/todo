@@ -137,6 +137,10 @@ export async function migrateV0() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
+  // Seed RODA SÓ UMA VEZ: se já existe qualquer demanda de trabalho, não mexe mais.
+  // Antes, isso reinseria cards apagados a cada F5 (voltavam pro backlog).
+  const { count } = await supabase.from('item').select('id', { count: 'exact', head: true }).eq('environment', 'trabalho')
+  if ((count || 0) > 0) return
   const { data: existing } = await supabase.from('item').select('id,legacy_id,origem').eq('environment', 'trabalho').not('legacy_id', 'is', null)
   const byLegacy = {}; (existing || []).forEach(r => { if (r.legacy_id) byLegacy[r.legacy_id] = r })
   const { data: areas } = await supabase.from('work_area').select('id,code')
