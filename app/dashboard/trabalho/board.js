@@ -194,7 +194,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
   )
 }
 
-function CardModal({ card, now, areas, areaCode, onClose, onMove, onSetStatus, onBlock, onSave, onDelete, onPlay, onPause, onAddTime }) {
+export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, onBlock, onSave, onDelete, onPlay, onPause, onAddTime, openHref }) {
   const [tab, setTab] = useState('geral')
   const [title, setTitle] = useState(card.title || '')
   const [areaSel, setAreaSel] = useState(areaCode[card.work_area_id] || '')
@@ -215,6 +215,7 @@ function CardModal({ card, now, areas, areaCode, onClose, onMove, onSetStatus, o
         const { data: s } = await supabase.storage.from('attachments').createSignedUrl(r.path, 3600)
         return { ...r, url: s?.signedUrl || null }
       }
+      if (r.kind === 'link') return { ...r, url: r.path }
       return r
     }))
     setAtts(withUrls)
@@ -238,8 +239,15 @@ function CardModal({ card, now, areas, areaCode, onClose, onMove, onSetStatus, o
   }
   async function delAtt(a) {
     setAtts(s => (s || []).filter(x => x.id !== a.id))
-    await supabase.storage.from('attachments').remove([a.path])
+    if (a.kind !== 'link') await supabase.storage.from('attachments').remove([a.path])
     await supabase.from('attachment').delete().eq('id', a.id)
+  }
+  async function addLink(rawUrl, label) {
+    let url = (rawUrl || '').trim()
+    if (!url || /^javascript:/i.test(url)) return
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+    await supabase.from('attachment').insert({ item_id: card.id, kind: 'link', filename: (label || '').trim() || url, mime: 'link', size: null, path: url })
+    loadAtts()
   }
   async function openAtt(a) {
     if (a.kind === 'image') { setLightbox(a.url); return }
@@ -250,11 +258,10 @@ function CardModal({ card, now, areas, areaCode, onClose, onMove, onSetStatus, o
 
   return (
     <>
-      <div className="badge-overlay" onClick={onClose}>
-        <div className="kmodal kmodal-xl" onClick={e => e.stopPropagation()}>
-          <div className="km-top">
-            <span className="kcode big">{card.legacy_id || '—'}</span>
-            <div className="km-top-actions">
+      <div className="km-top">
+        <span className="kcode big">{card.legacy_id || '—'}</span>
+        <div className="km-top-actions">
+          {openHref && <a className="km-open" href={openHref}>↗ página</a>}
               {confirmDel ? (
                 <><span className="km-confirm">Excluir mesmo?</span><button className="link" onClick={() => setConfirmDel(false)}>não</button><button className="km-del" onClick={() => onDelete(card.id)}>sim, excluir</button></>
               ) : (
@@ -299,9 +306,7 @@ function CardModal({ card, now, areas, areaCode, onClose, onMove, onSetStatus, o
             </div>
           )}
           {tab === 'tempo' && <TempoTab card={card} now={now} onPlay={onPlay} onPause={onPause} onAddTime={onAddTime} />}
-          {tab === 'anexos' && <AnexosTab atts={atts} onAdd={addFiles} onDelete={delAtt} onOpen={openAtt} />}
-        </div>
-      </div>
+          {tab === 'anexos' && <AnexosTab atts={atts} onAdd={addFiles} onAddLink={addLink} onDelete={delAtt} onOpen={openAtt} />}
       {lightbox && <div className="lightbox" onClick={() => setLightbox(null)}><img src={lightbox} alt="" /></div>}
       {doc && (
         <div className="badge-overlay" onClick={() => setDoc(null)}>
@@ -317,10 +322,24 @@ function CardModal({ card, now, areas, areaCode, onClose, onMove, onSetStatus, o
   )
 }
 
-function AnexosTab({ atts, onAdd, onDelete, onOpen }) {
+function CardModal(props) {
+  return (
+    <div className="badge-overlay" onClick={props.onClose}>
+      <div className="kmodal kmodal-xl" onClick={e => e.stopPropagation()}>
+        <DemandDetail {...props} openHref={`/dashboard/trabalho/${encodeURIComponent(props.card.legacy_id || props.card.id)}`} />
+      </div>
+    </div>
+  )
+}
+
+function AnexosTab({ atts, onAdd, onAddLink, onDelete, onOpen }) {
   const [over, setOver] = useState(false)
+  const [url, setUrl] = useState('')
+  const [label, setLabel] = useState('')
   const images = (atts || []).filter(a => a.kind === 'image')
-  const files = (atts || []).filter(a => a.kind !== 'image')
+  const links = (atts || []).filter(a => a.kind === 'link')
+  const files = (atts || []).filter(a => a.kind !== 'image' && a.kind !== 'link')
+  function submitLink(e) { e.preventDefault(); if (!url.trim()) return; onAddLink(url, label); setUrl(''); setLabel('') }
   return (
     <div className="anx">
       <label
@@ -333,8 +352,24 @@ function AnexosTab({ atts, onAdd, onDelete, onOpen }) {
         <div className="anx-drop-t">Arraste arquivos aqui ou clique pra escolher</div>
         <div className="anx-drop-s">imagens · .md · .txt</div>
       </label>
+      <form className="anx-linkadd" onSubmit={submitLink}>
+        <input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://… colar um link" />
+        <input value={label} onChange={e => setLabel(e.target.value)} placeholder="rótulo (opcional)" />
+        <button>+ link</button>
+      </form>
       {atts === null && <div className="anx-empty">carregando…</div>}
-      {atts && atts.length === 0 && <div className="anx-empty">Nenhum anexo ainda.</div>}
+      {atts && atts.length === 0 && <div className="anx-empty">Nenhum anexo ou link ainda.</div>}
+      {links.length > 0 && (
+        <div className="anx-files">
+          {links.map(a => (
+            <div key={a.id} className="anx-file">
+              <span className="anx-file-ico anx-ico-link">↗</span>
+              <a className="anx-file-name anx-link-a" href={a.path} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{a.filename || a.path}</a>
+              <button className="anx-del2" onClick={() => onDelete(a)}>remover</button>
+            </div>
+          ))}
+        </div>
+      )}
       {images.length > 0 && (
         <div className="anx-grid">
           {images.map(a => (

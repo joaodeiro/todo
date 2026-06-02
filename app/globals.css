@@ -332,6 +332,21 @@ a.km-src{ color:var(--heat-b) }
 .docview-md blockquote{ border-left:3px solid var(--line); padding-left:12px; color:var(--muted); margin:8px 0 }
 .docview-md a{ color:var(--heat-b); text-decoration:underline }
 .docview-md hr{ border:none; border-top:.5px solid var(--line); margin:14px 0 }
+/* link no header do detalhe + form de link nos anexos */
+.km-open{ font-size:12px; color:var(--heat-b); border:.5px solid var(--line); border-radius:8px; padding:5px 10px; text-decoration:none; margin-right:auto }
+.km-open:hover{ border-color:rgba(42,39,36,.22) }
+.anx-linkadd{ display:flex; gap:8px }
+.anx-linkadd input{ padding:8px 10px; font-size:13px; border:.5px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); min-width:0 }
+.anx-linkadd input:first-of-type{ flex:2 }
+.anx-linkadd input:last-of-type{ flex:1 }
+.anx-linkadd button{ border:.5px solid var(--line); background:var(--surface); border-radius:9px; padding:0 14px; font:inherit; font-size:13px; cursor:pointer; color:var(--ink); flex:none }
+.anx-ico-link{ background:var(--heat-b) }
+.anx-link-a{ color:var(--heat-b); text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.anx-link-a:hover{ text-decoration:underline }
+/* página da demanda (URL própria) */
+.demand-page{ padding-top:28px }
+.demand-shell{ background:var(--surface); border:.5px solid var(--line); border-radius:18px; padding:26px 28px; box-shadow:0 12px 38px rgba(42,39,36,.06); margin-top:14px; max-width:880px }
+@media (max-width:640px){ .demand-shell{ padding:18px } }
 
 /* galeria em linhas (Netflix) + raridade */
 .trrow{ display:block; margin:22px 0 4px }
