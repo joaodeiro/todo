@@ -164,17 +164,28 @@ input:focus{ outline:none; border-color:var(--heat-a); }
 
 /* kanban (Trabalho) — revisão: largura, código, filtros, bloqueio */
 .dash.wide{ max-width:1180px }
-/* app shell: rail lateral persistente + área de conteúdo */
+/* app shell: sidebar (navegação/sistema) + header (gestão) + conteúdo */
 .shell{ display:flex; min-height:100vh }
-.rail{ position:fixed; top:0; left:0; bottom:0; width:60px; background:var(--surface); border-right:.5px solid var(--line); display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px; z-index:40 }
-.rail-logo{ width:38px; height:38px; border-radius:11px; background:linear-gradient(120deg,var(--heat-c),var(--heat-a),var(--heat-b)); display:flex; align-items:center; justify-content:center; font-size:18px; text-decoration:none; margin-bottom:8px; box-shadow:0 4px 12px rgba(230,76,40,.25) }
-.rail-nav{ display:flex; flex-direction:column; gap:4px }
-.rail-bottom{ margin-top:auto; display:flex; flex-direction:column; gap:4px }
-.rail-bottom form{ display:flex }
-.rail-i{ width:42px; height:42px; display:flex; align-items:center; justify-content:center; border:none; background:none; color:var(--muted); border-radius:11px; cursor:pointer; transition:background .12s,color .12s; text-decoration:none }
-.rail-i:hover{ background:var(--bg); color:var(--ink) }
-.rail-i.on{ background:rgba(230,76,40,.1); color:var(--heat-a) }
-.shell-main{ flex:1; margin-left:60px; min-width:0 }
+.side{ position:fixed; top:0; left:0; bottom:0; width:212px; background:var(--surface); border-right:.5px solid var(--line); display:flex; flex-direction:column; padding:16px 12px; gap:8px; z-index:40 }
+.side-brand{ display:flex; align-items:center; gap:10px; padding:6px 8px 14px; text-decoration:none; color:var(--ink) }
+.side-logo{ width:34px; height:34px; border-radius:10px; background:linear-gradient(120deg,var(--heat-c),var(--heat-a),var(--heat-b)); display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow:0 4px 12px rgba(230,76,40,.25) }
+.side-brandtxt{ font-size:15px; font-weight:600 }
+.side-nav{ display:flex; flex-direction:column; gap:2px }
+.side-i{ display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius:10px; color:var(--muted); text-decoration:none; font-size:14px; transition:background .12s,color .12s }
+.side-i svg{ flex:none }
+.side-i:hover{ background:var(--bg); color:var(--ink) }
+.side-i.on{ background:rgba(230,76,40,.1); color:var(--heat-a); font-weight:500 }
+.shell-main{ flex:1; margin-left:212px; min-width:0; display:flex; flex-direction:column }
+.topbar{ position:sticky; top:0; z-index:30; display:flex; align-items:center; justify-content:flex-end; gap:6px; height:54px; padding:0 22px; background:var(--bg); border-bottom:.5px solid var(--line) }
+.topbar-actions{ display:flex; align-items:center; gap:4px }
+.top-i{ width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:none; background:none; color:var(--muted); border-radius:9px; cursor:pointer; transition:background .12s,color .12s }
+.top-i:hover{ background:var(--surface); color:var(--ink) }
+.top-link{ display:flex; align-items:center; gap:7px; padding:7px 11px; border:none; background:none; color:var(--muted); border-radius:9px; cursor:pointer; font:inherit; font-size:13.5px; text-decoration:none; transition:background .12s,color .12s }
+.top-link svg{ flex:none }
+.top-link:hover{ background:var(--surface); color:var(--ink) }
+.top-link.on{ color:var(--ink) }
+.shell-content{ flex:1; min-width:0 }
+@media (max-width:720px){ .side{ width:64px; padding:14px 8px } .side-brandtxt, .side-i span{ display:none } .side-i{ justify-content:center } .shell-main{ margin-left:64px } }
 /* hierarquia em camadas: header de seção + toolbar */
 .page-head{ margin-bottom:6px }
 .section-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding-bottom:16px; border-bottom:.5px solid var(--line) }
