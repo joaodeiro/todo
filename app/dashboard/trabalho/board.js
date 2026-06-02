@@ -175,7 +175,9 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
                 const running = !!c.timer_started_at
                 return (
                   <div key={c.id} className={`kcard ${c.blocked ? 'blk' : ''} ${col.key === 'concluido' ? 'done' : ''}`}
-                    draggable onDragStart={e => e.dataTransfer.setData('text/plain', c.id)} onClick={() => router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}>
+                    draggable onDragStart={e => e.dataTransfer.setData('text/plain', c.id)}
+                    onMouseEnter={() => router.prefetch(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}
+                    onClick={() => router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}>
                     <div className="kc-top">
                       <span className="kcode">{c.legacy_id || (areaCode[c.work_area_id] || '—')}</span>
                       {c.blocked && <span className="kblk">🚫</span>}

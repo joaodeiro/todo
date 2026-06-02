@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { DomainBoard, PresenceBoard } from './ui'
 
 export const dynamic = 'force-dynamic'
+export const preferredRegion = 'gru1'
 
 export default async function DomainPage({ params }) {
   const supabase = createClient()

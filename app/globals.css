@@ -378,6 +378,26 @@ a.km-src{ color:var(--heat-b) }
 .dmd-pv{ font-size:13.5px; color:var(--ink); font-variant-numeric:tabular-nums }
 .dmd-side .blk-panel{ border-top:none; padding-top:0 }
 @media (max-width:760px){ .dmd-grid{ grid-template-columns:1fr; gap:26px } .dmd-side{ position:static } }
+/* skeletons de carregamento (feedback instantâneo na navegação) */
+.skel{ position:relative; overflow:hidden; background:var(--surface); border:.5px solid var(--line); border-radius:12px }
+.skel::after{ content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, rgba(140,134,124,.14), transparent); animation:skelsweep 1.25s infinite }
+@keyframes skelsweep{ 100%{ transform:translateX(100%) } }
+.sk-back{ width:90px; height:15px; margin-bottom:18px; border-radius:6px }
+.sk-h1{ width:240px; height:30px; margin-bottom:22px; border-radius:8px }
+.sk-kanban{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:8px }
+.sk-col{ display:flex; flex-direction:column; gap:10px }
+.sk-coltitle{ height:20px; width:60%; border-radius:6px }
+.sk-card{ height:74px; border-radius:14px }
+.sk-pill{ width:120px; height:26px; border-radius:999px; margin-bottom:16px }
+.sk-title{ width:70%; height:38px; border-radius:8px; margin-bottom:14px }
+.sk-meta{ width:300px; height:15px; border-radius:6px; margin-bottom:26px }
+.sk-grid{ display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:44px }
+.sk-block{ height:200px; border-radius:12px; margin-bottom:14px }
+.sk-block2{ height:42px; width:50%; border-radius:10px }
+.sk-side{ height:280px; border-radius:14px }
+.sk-grid-home{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-top:24px }
+.sk-domain{ height:56px; border-radius:14px }
+@media (max-width:760px){ .sk-grid{ grid-template-columns:1fr } .sk-kanban{ grid-template-columns:repeat(2,1fr) } }
 
 /* galeria em linhas (Netflix) + raridade */
 .trrow{ display:block; margin:22px 0 4px }

@@ -4,15 +4,17 @@ import Link from 'next/link'
 import { DemandPage } from './detail'
 
 export const dynamic = 'force-dynamic'
+export const preferredRegion = 'gru1'
 
 export default async function Page({ params }) {
   const code = decodeURIComponent(params.code || '')
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')
-  const { data: card } = await supabase
-    .from('item').select('*')
-    .eq('environment', 'trabalho').ilike('legacy_id', code).maybeSingle()
+  const [{ data: card }, { data: areas }] = await Promise.all([
+    supabase.from('item').select('*').eq('environment', 'trabalho').ilike('legacy_id', code).maybeSingle(),
+    supabase.from('work_area').select('*').order('code'),
+  ])
   if (!card) {
     return (
       <main className="dash wide">
@@ -22,7 +24,6 @@ export default async function Page({ params }) {
       </main>
     )
   }
-  const { data: areas } = await supabase.from('work_area').select('*').order('code')
   const { data: te } = await supabase.from('time_entry').select('seconds').eq('item_id', card.id)
   const secs = (te || []).reduce((a, t) => a + (t.seconds || 0), 0)
   return <DemandPage initialCard={{ ...card, secs }} areas={areas || []} />

@@ -5,14 +5,17 @@ import { ensureSeed, signOut } from '@/app/actions'
 import { ThemeToggle } from '@/app/dashboard/theme'
 
 export const dynamic = 'force-dynamic'
+export const preferredRegion = 'gru1'
 
 export default async function Dashboard() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')
   await ensureSeed()
-  const { data: domains } = await supabase.from('domain').select('*').order('sort')
-  const { data: items } = await supabase.from('item').select('domain_id,status,completed_at').eq('environment', 'vida')
+  const [{ data: domains }, { data: items }] = await Promise.all([
+    supabase.from('domain').select('*').order('sort'),
+    supabase.from('item').select('domain_id,status,completed_at').eq('environment', 'vida'),
+  ])
   const week = Date.now() - 7 * 86400000
   const done = {}, recent = {}
   ;(items || []).forEach(i => {
