@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ensureSeed, signOut } from '@/app/actions'
-import { ThemeToggle } from '@/app/dashboard/theme'
+import { ensureSeed } from '@/app/actions'
 
 export const dynamic = 'force-dynamic'
 export const preferredRegion = 'gru1'
@@ -27,22 +26,10 @@ export default async function Dashboard() {
 
   return (
     <main className="dash">
-      <div className="row">
-        <div>
-          <h1>E aí, João! 👋</h1>
-          <p className="sub">Clica num domínio pra entrar. 🔥 = embalado nos últimos 7 dias.</p>
-        </div>
-        <div className="acct">
-          <ThemeToggle />
-          <Link href="/dashboard/conquistas" className="link">🏅 conquistas</Link>
-          <Link href="/dashboard/conta" className="link">conta</Link>
-          <form action={signOut}><button className="link">sair</button></form>
-        </div>
-      </div>
-      <div className="envtabs">
-        <span className="envtab on">Vida</span>
-        <Link href="/dashboard/trabalho" className="envtab">Trabalho →</Link>
-      </div>
+      <header className="page-head">
+        <h1>E aí, João! 👋</h1>
+        <p className="sub">Clica num domínio pra entrar. 🔥 = embalado nos últimos 7 dias.</p>
+      </header>
       <div className="grid">
         {(domains || []).map(d => (
           <Link key={d.id} href={`/dashboard/${d.slug}`} className={`domain ${d.kind}`}>

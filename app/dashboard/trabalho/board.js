@@ -151,11 +151,18 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
     return true
   }
   const shown = cards.filter(visible)
+  const doneN = cards.filter(c => (c.status || 'backlog') === 'concluido').length
   const sel = selId ? cards.find(c => c.id === selId) : null
 
   return (
     <>
-      <div className="kadd2"><button className="knew" onClick={() => setCreating(true)}>＋ Nova demanda</button></div>
+      <header className="section-head">
+        <div className="section-head-l">
+          <h1 className="section-title">Trabalho</h1>
+          <span className="section-meta">{cards.length} demandas{doneN ? ` · ${doneN} concluídas` : ''}</span>
+        </div>
+        <button className="knew" onClick={() => setCreating(true)}>＋ Nova demanda</button>
+      </header>
       <div className="kfilters">
         {['all', 'PROD', 'DES', 'INOV'].map(a => (
           <button key={a} className={`btab ${area === a ? 'on' : ''}`} onClick={() => setArea(a)}>{a === 'all' ? 'Todas' : a}</button>

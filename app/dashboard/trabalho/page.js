@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { KanbanBoard } from './board'
 import { migrateV0 } from '@/app/actions'
 
@@ -20,8 +19,6 @@ export default async function Trabalho() {
   const timeTotals = {}; (te || []).forEach(t => { timeTotals[t.item_id] = (timeTotals[t.item_id] || 0) + (t.seconds || 0) })
   return (
     <main className="dash wide">
-      <Link href="/dashboard" className="back">← Vida</Link>
-      <h1>Trabalho</h1>
       <KanbanBoard initialCards={cards || []} areas={areas || []} timeTotals={timeTotals} />
     </main>
   )
