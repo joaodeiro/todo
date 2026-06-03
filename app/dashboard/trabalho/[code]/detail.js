@@ -32,11 +32,16 @@ export function DemandPage({ initialCard, areas }) {
     await updateCard(id, { title: fields.title, contexto: fields.contexto, areaCode: fields.areaCode })
   }
   async function remove(id) { await deleteItem(id); router.push('/dashboard/trabalho') }
-  function play(c) { if (c.timer_started_at) return; const iso = new Date().toISOString(); setCard(s => ({ ...s, timer_started_at: iso })); startTimer(c.id) }
+  function play(c) {
+    if (c.timer_started_at) return
+    const iso = new Date().toISOString(); setCard(s => ({ ...s, timer_started_at: iso })); startTimer(c.id)
+    try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
+  }
   function pause(c) {
     const el = Math.max(0, Math.floor((Date.now() - Date.parse(c.timer_started_at)) / 1000))
     const add = el >= 60 ? el : 0
     setCard(s => ({ ...s, secs: (s.secs || 0) + add, timer_started_at: null })); stopTimer(c.id)
+    try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
   }
   function addManual(id, min, note) {
     const secs = Math.round((Number(min) || 0) * 60); if (secs === 0) return

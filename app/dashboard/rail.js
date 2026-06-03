@@ -2,7 +2,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { signOut } from '@/app/actions'
+import { signOut, stopTimer } from '@/app/actions'
+import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
 
 const THEMES = ['cream', 'light', 'dark']
 
@@ -32,6 +33,48 @@ export function Sidebar() {
   )
 }
 
+function IPause() { return <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /></svg> }
+
+// pill global da demanda rodando: visível em qualquer página, tempo ao vivo + pausa
+export function RunningTimer() {
+  const [supabase] = useState(() => createBrowserSupabase())
+  const [run, setRun] = useState(null)
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    let on = true
+    async function load() {
+      const { data } = await supabase.from('item').select('id,legacy_id,title,timer_started_at').not('timer_started_at', 'is', null).limit(1)
+      if (on) setRun((data || [])[0] || null)
+    }
+    load()
+    const poll = setInterval(load, 15000)
+    const onSync = () => load()
+    window.addEventListener('focus', onSync)
+    window.addEventListener('timer-change', onSync)
+    return () => { on = false; clearInterval(poll); window.removeEventListener('focus', onSync); window.removeEventListener('timer-change', onSync) }
+  }, [supabase])
+  useEffect(() => { if (!run) return; const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [run])
+  if (!run) return null
+  const secs = Math.max(0, Math.floor((now - Date.parse(run.timer_started_at)) / 1000))
+  const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60
+  const disp = (h ? h + ':' : '') + String(m).padStart(h ? 2 : 1, '0') + ':' + String(s).padStart(2, '0')
+  async function pause(e) {
+    e.preventDefault(); e.stopPropagation()
+    setRun(null)
+    await stopTimer(run.id)
+    try { window.dispatchEvent(new Event('timer-change')) } catch (err) {}
+  }
+  return (
+    <Link href={`/dashboard/trabalho/${encodeURIComponent(run.legacy_id || run.id)}`} className="runpill" title={run.title}>
+      <span className="runpill-dot" />
+      <span className="runpill-code">{run.legacy_id || '—'}</span>
+      <span className="runpill-title">{run.title}</span>
+      <span className="runpill-time">{disp}</span>
+      <button className="runpill-pause" onClick={pause} aria-label="pausar"><IPause /></button>
+    </Link>
+  )
+}
+
 export function TopBar() {
   const path = usePathname() || ''
   const contaOn = path.startsWith('/dashboard/conta')
@@ -47,6 +90,7 @@ export function TopBar() {
   }
   return (
     <header className="topbar">
+      <div className="topbar-left"><RunningTimer /></div>
       <div className="topbar-actions">
         <button className="top-i" onClick={cycleTheme} title={`Tema: ${theme}`} aria-label="Mudar tema"><ITheme /></button>
         <Link href="/dashboard/conta" className={`top-link ${contaOn ? 'on' : ''}`}><IUser /><span>Perfil</span></Link>

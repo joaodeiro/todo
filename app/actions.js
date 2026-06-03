@@ -133,6 +133,13 @@ export async function moveCard(id, status) {
   await supabase.from('event').insert({ type: 'card_moved', item_id: id, payload: { status } })
 }
 
+export async function reorderCards(ids) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  await Promise.all((ids || []).map((id, i) => supabase.from('item').update({ sort: i + 1 }).eq('id', id)))
+}
+
 export async function migrateV0() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -202,7 +209,7 @@ export async function createCardFull(fields) {
     legacy_id = `${fields.areaCode}-${max + 1}`
   }
   const { data: card } = await supabase.from('item').insert({
-    environment: 'trabalho', primitive: 'card', status: 'backlog', legacy_id,
+    environment: 'trabalho', primitive: 'card', status: 'backlog', legacy_id, sort: 999999,
     title: (fields.title || '').trim() || 'Sem título', work_area_id: waId,
     notes: fields.contexto ? String(fields.contexto).trim() : null,
     origem: fields.origem ? String(fields.origem).trim() : null

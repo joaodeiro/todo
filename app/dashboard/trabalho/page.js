@@ -12,7 +12,7 @@ export default async function Trabalho() {
   if (!user) redirect('/')
   await migrateV0()
   const [{ data: cards }, { data: areas }, { data: te }] = await Promise.all([
-    supabase.from('item').select('*').eq('environment', 'trabalho').order('created_at'),
+    supabase.from('item').select('*').eq('environment', 'trabalho').order('sort', { ascending: true }).order('created_at', { ascending: true }),
     supabase.from('work_area').select('*').order('code'),
     supabase.from('time_entry').select('item_id,seconds'),
   ])

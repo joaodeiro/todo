@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { createCardFull, moveCard, setBlocked, updateCard, deleteItem, startTimer, stopTimer, addTime, listTimeEntries } from '@/app/actions'
+import { createCardFull, moveCard, reorderCards, setBlocked, updateCard, deleteItem, startTimer, stopTimer, addTime, listTimeEntries } from '@/app/actions'
 import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
 
 const COLS = [
@@ -29,6 +29,7 @@ function liveSecs(c, now) {
   return base
 }
 function fmtSize(n) { n = n || 0; if (n < 1024) return n + ' B'; if (n < 1048576) return (n / 1024).toFixed(0) + ' KB'; return (n / 1048576).toFixed(1) + ' MB' }
+function bySort(a, b) { return ((a.sort || 0) - (b.sort || 0)) || ((a.created_at || '') < (b.created_at || '') ? -1 : 1) }
 function mdToHtml(src) {
   if (!src) return ''
   const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -91,6 +92,8 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
   const [switchTo, setSwitchTo] = useState(null)
   const [confirmDelId, setConfirmDelId] = useState(null)
   const [dragCol, setDragCol] = useState(null)
+  const [dragId, setDragId] = useState(null)
+  const [overInfo, setOverInfo] = useState(null)
   const areaCode = {}; (areas || []).forEach(a => { areaCode[a.id] = a.code })
   const codeToId = {}; (areas || []).forEach(a => { codeToId[a.code] = a.id })
 
@@ -108,6 +111,21 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
     const card = cards.find(c => c.id === id); if (!card || (card.status || 'backlog') === status) return
     setCards(s => s.map(c => c.id === id ? { ...c, status } : c))
     moveCard(id, status)
+  }
+  // solta o card numa posição: reordena dentro da coluna (e muda status se cruzou coluna)
+  function performDrop(id, status, targetId, before) {
+    setDragId(null); setOverInfo(null); setDragCol(null)
+    if (!id || id === targetId) return
+    const dragged = cards.find(c => c.id === id); if (!dragged) return
+    const rest = cards.filter(c => (c.status || 'backlog') === status && c.id !== id).sort(bySort)
+    let idx = rest.length
+    if (targetId) { const ti = rest.findIndex(c => c.id === targetId); if (ti >= 0) idx = before ? ti : ti + 1 }
+    const newList = [...rest.slice(0, idx), dragged, ...rest.slice(idx)]
+    const sortById = {}; newList.forEach((c, i) => { sortById[c.id] = i + 1 })
+    const statusChanged = (dragged.status || 'backlog') !== status
+    setCards(s => s.map(c => sortById[c.id] != null ? { ...c, sort: sortById[c.id], status: c.id === id ? status : c.status } : c))
+    if (statusChanged) moveCard(id, status)
+    reorderCards(newList.map(c => c.id))
   }
   function toggleBlock(card, type, note) {
     const nb = !card.blocked
@@ -136,12 +154,14 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
       return c
     }))
     startTimer(card.id)
+    try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
   }
   function pause(card) {
     const el = Math.max(0, Math.floor((Date.now() - Date.parse(card.timer_started_at)) / 1000))
     const add = el >= 60 ? el : 0
     setCards(s => s.map(c => c.id === card.id ? { ...c, secs: (c.secs || 0) + add, timer_started_at: null } : c))
     stopTimer(card.id)
+    try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
   }
   function addManual(id, minutes, note) {
     const secs = Math.round((Number(minutes) || 0) * 60); if (secs === 0) return
@@ -179,20 +199,24 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
       </div>
       <div className="kanban">
         {COLS.map(col => {
-          const list = shown.filter(c => (c.status || 'backlog') === col.key)
+          const list = shown.filter(c => (c.status || 'backlog') === col.key).sort(bySort)
           return (
             <div key={col.key}
               className={`kcol ${dragCol === col.key ? 'over' : ''} ${col.key === 'concluido' ? 'kcol-done' : ''}`}
               onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
               onDragEnter={() => setDragCol(col.key)}
-              onDragLeave={e => { if (e.currentTarget === e.target) setDragCol(null) }}
-              onDrop={e => { e.preventDefault(); setDragCol(null); const id = e.dataTransfer.getData('text/plain'); moveTo(id, col.key) }}>
+              onDragLeave={e => { if (e.currentTarget === e.target) { setDragCol(null); setOverInfo(null) } }}
+              onDrop={e => { e.preventDefault(); performDrop(e.dataTransfer.getData('text/plain') || dragId, col.key, null, false) }}>
               <h3>{col.label}<span className="n">{list.length}</span></h3>
               {list.map(c => {
                 const running = !!c.timer_started_at
                 return (
-                  <div key={c.id} className={`kcard ${c.blocked ? 'blk' : ''} ${col.key === 'concluido' ? 'done' : ''}`}
-                    draggable onDragStart={e => e.dataTransfer.setData('text/plain', c.id)}
+                  <div key={c.id} className={`kcard ${c.blocked ? 'blk' : ''} ${col.key === 'concluido' ? 'done' : ''} ${dragId === c.id ? 'dragging' : ''} ${overInfo && overInfo.id === c.id ? (overInfo.before ? 'drop-before' : 'drop-after') : ''}`}
+                    draggable
+                    onDragStart={e => { setDragId(c.id); e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = 'move' }}
+                    onDragEnd={() => { setDragId(null); setOverInfo(null); setDragCol(null) }}
+                    onDragOver={e => { e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); const before = e.clientY < r.top + r.height / 2; setOverInfo(o => (o && o.id === c.id && o.before === before) ? o : { id: c.id, before }) }}
+                    onDrop={e => { e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); const before = e.clientY < r.top + r.height / 2; performDrop(e.dataTransfer.getData('text/plain') || dragId, col.key, c.id, before) }}
                     onMouseEnter={() => router.prefetch(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}
                     onClick={() => router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}>
                     <div className="kc-top">
