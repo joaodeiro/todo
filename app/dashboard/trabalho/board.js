@@ -65,6 +65,13 @@ function Pause() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="
 function Shield() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /></svg> }
 function Ban() { return <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="m4.9 4.9 14.2 14.2" /></svg> }
 function Trash() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M10 11v6M14 11v6" /></svg> }
+function linkify(text) {
+  if (!text) return null
+  return String(text).split(/(https?:\/\/[^\s]+)/g).map((p, i) =>
+    /^https?:\/\//.test(p)
+      ? <a key={i} className="blk-link" href={p} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{p}</a>
+      : p)
+}
 function StatusPill({ status }) {
   const map = { backlog: ['Backlog', '#8C867C'], aguardando: ['Aguardando', '#E6A23C'], fazendo: ['Fazendo', '#378ADD'], concluido: ['Concluído', '#1D9E75'] }
   const [label, color] = map[status || 'backlog'] || map.backlog
@@ -463,7 +470,7 @@ function BlockersPanel({ card, onBlock }) {
       {card.blocked ? (
         <div className="blk-active">
           <div className="blk-type">{card.block_reason}</div>
-          {card.block_note && <div className="blk-note">{card.block_note}</div>}
+          {card.block_note && <div className="blk-note">{linkify(card.block_note)}</div>}
           <button className="link" onClick={() => onBlock(card, null, null)}>desbloquear</button>
         </div>
       ) : adding ? (

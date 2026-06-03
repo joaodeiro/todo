@@ -56,14 +56,13 @@ function Emblem({ seedKey, tier, mystery, size = 30 }) {
 
 export function Gallery({ states }) {
   const [sel, setSel] = useState(null)
-  const earnedCount = states.filter(s => s.earned).length
   const byTrail = {}
   states.forEach(s => { const t = s.trail || 'Outros'; (byTrail[t] = byTrail[t] || []).push(s) })
-  const trails = Object.keys(byTrail).sort((a, b) => prio(a) - prio(b))
+  const trailTo = {}; states.forEach(s => { const t = s.trail || 'Outros'; const v = s.to ?? 50; if (trailTo[t] == null || v < trailTo[t]) trailTo[t] = v })
+  const trails = Object.keys(byTrail).sort((a, b) => (trailTo[a] - trailTo[b]) || a.localeCompare(b))
 
   return (
     <>
-      <p className="sub">{earnedCount} de {states.length} desbloqueadas</p>
       {trails.map(t => {
         const list = byTrail[t].slice().sort((a, b) => (a.earned === b.earned ? a.seq - b.seq : (a.earned ? -1 : 1)))
         const e = list.filter(s => s.earned).length
