@@ -117,7 +117,8 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
     setDragId(null); setOverInfo(null); setDragCol(null)
     if (!id || id === targetId) return
     const dragged = cards.find(c => c.id === id); if (!dragged) return
-    const rest = cards.filter(c => (c.status || 'backlog') === status && c.id !== id).sort(bySort)
+    const colCards = cards.filter(c => (c.status || 'backlog') === status && c.id !== id)
+    const rest = [...colCards.filter(c => !c.blocked).sort(bySort), ...colCards.filter(c => c.blocked).sort(bySort)]
     let idx = rest.length
     if (targetId) { const ti = rest.findIndex(c => c.id === targetId); if (ti >= 0) idx = before ? ti : ti + 1 }
     const newList = [...rest.slice(0, idx), dragged, ...rest.slice(idx)]
@@ -188,7 +189,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
           <h1 className="section-title">Trabalho</h1>
           <span className="section-meta">{cards.length} demandas{doneN ? ` · ${doneN} concluídas` : ''}</span>
         </div>
-        <button className="knew" onClick={() => setCreating(true)}>＋ Nova demanda</button>
+        <button className="knew" onClick={() => router.push('/dashboard/trabalho/nova')} onMouseEnter={() => router.prefetch('/dashboard/trabalho/nova')}>＋ Nova demanda</button>
       </header>
       <div className="kfilters">
         {['all', 'PROD', 'DES', 'INOV'].map(a => (
@@ -208,9 +209,12 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
               onDragLeave={e => { if (e.currentTarget === e.target) { setDragCol(null); setOverInfo(null) } }}
               onDrop={e => { e.preventDefault(); performDrop(e.dataTransfer.getData('text/plain') || dragId, col.key, null, false) }}>
               <h3>{col.label}<span className="n">{list.length}</span></h3>
-              {list.map(c => {
-                const running = !!c.timer_started_at
-                return (
+              {(() => {
+                const free = list.filter(c => !c.blocked)
+                const blocked = list.filter(c => c.blocked)
+                const renderCard = c => {
+                  const running = !!c.timer_started_at
+                  return (
                   <div key={c.id} className={`kcard ${c.blocked ? 'blk' : ''} ${col.key === 'concluido' ? 'done' : ''} ${dragId === c.id ? 'dragging' : ''} ${overInfo && overInfo.id === c.id ? (overInfo.before ? 'drop-before' : 'drop-after') : ''}`}
                     draggable
                     onDragStart={e => { setDragId(c.id); e.dataTransfer.setData('text/plain', c.id); e.dataTransfer.effectAllowed = 'move' }}
@@ -245,8 +249,16 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
                       </div>
                     )}
                   </div>
+                  )
+                }
+                return (
+                  <>
+                    {free.map(renderCard)}
+                    {free.length > 0 && blocked.length > 0 && <div className="kdiv" />}
+                    {blocked.map(renderCard)}
+                  </>
                 )
-              })}
+              })()}
             </div>
           )
         })}

@@ -208,8 +208,9 @@ export async function createCardFull(fields) {
     ;(rows || []).forEach(r => { const m = (r.legacy_id || '').match(/-(\d+)$/); if (m) max = Math.max(max, parseInt(m[1], 10)) })
     legacy_id = `${fields.areaCode}-${max + 1}`
   }
+  const status = ['backlog', 'aguardando', 'fazendo', 'concluido'].includes(fields.status) ? fields.status : 'backlog'
   const { data: card } = await supabase.from('item').insert({
-    environment: 'trabalho', primitive: 'card', status: 'backlog', legacy_id, sort: 999999,
+    environment: 'trabalho', primitive: 'card', status, completed_at: status === 'concluido' ? new Date().toISOString() : null, legacy_id, sort: 999999,
     title: (fields.title || '').trim() || 'Sem título', work_area_id: waId,
     notes: fields.contexto ? String(fields.contexto).trim() : null,
     origem: fields.origem ? String(fields.origem).trim() : null

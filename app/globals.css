@@ -196,6 +196,8 @@ input:focus{ outline:none; border-color:var(--heat-a); }
 .runpill-pause{ display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; border:none; background:var(--heat-a); color:#fff; cursor:pointer; flex:none; padding:0 }
 .runpill-pause:active{ transform:scale(.9) }
 @media (max-width:640px){ .runpill-title{ display:none } }
+/* divisor desbloqueadas/bloqueadas dentro da coluna */
+.kdiv{ height:0; border-top:1px dashed rgba(218,32,55,.28); margin:11px 4px }
 /* drag & drop: reordenar na coluna */
 .kcard.dragging{ opacity:.35 }
 .kcard.drop-before{ box-shadow:0 -3px 0 0 var(--heat-a) }
@@ -444,6 +446,7 @@ a.km-src{ color:var(--heat-b) }
 .dmd-pk{ font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted) }
 .dmd-pv{ font-size:13.5px; color:var(--ink); font-variant-numeric:tabular-nums }
 .dmd-side .blk-panel{ border-top:none; padding-top:0 }
+.dmd-hint{ font-size:12px; color:var(--muted); line-height:1.5; padding:0 4px }
 @media (max-width:760px){ .dmd-grid{ grid-template-columns:1fr; gap:26px } .dmd-side{ position:static } }
 /* skeletons de carregamento (feedback instantâneo na navegação) */
 .skel{ position:relative; overflow:hidden; background:var(--surface); border:.5px solid var(--line); border-radius:12px }
