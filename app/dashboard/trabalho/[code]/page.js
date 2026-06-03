@@ -13,12 +13,13 @@ export default async function Page({ params }) {
   if (!user) redirect('/')
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code)
   const cardQ = isUuid
-    ? supabase.from('item').select('*').eq('environment', 'trabalho').eq('id', code).maybeSingle()
-    : supabase.from('item').select('*').eq('environment', 'trabalho').ilike('legacy_id', code).maybeSingle()
-  const [{ data: card }, { data: areas }] = await Promise.all([
+    ? supabase.from('item').select('*').eq('environment', 'trabalho').eq('id', code).limit(1)
+    : supabase.from('item').select('*').eq('environment', 'trabalho').ilike('legacy_id', code).limit(1)
+  const [{ data: cardRows }, { data: areas }] = await Promise.all([
     cardQ,
     supabase.from('work_area').select('*').order('code'),
   ])
+  const card = (cardRows || [])[0]
   if (!card) {
     return (
       <main className="dash wide">

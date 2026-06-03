@@ -156,6 +156,13 @@ input:focus{ outline:none; border-color:var(--heat-a); }
 .bicon-big{ width:84px; height:84px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:42px; background:var(--bg); border:2px solid var(--line); margin-bottom:6px }
 .bicon-big.r-raro{ border-color:#378ADD } .bicon-big.r-epico{ border-color:#7F77DD }
 .bicon-big.r-lendario{ border-color:var(--heat-a) }
+/* medalhão estilo kit: gradiente radial por raridade + emoji */
+.bmedal{ width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:29px; line-height:1; flex:none; background:radial-gradient(circle at 50% 36%, #fff, #ededf0 64%, #d9d9de); border:1.5px solid #cdcdd3; box-shadow:inset 0 1.5px 2px rgba(255,255,255,.5), inset 0 -2px 4px rgba(0,0,0,.06) }
+.bmedal.r-raro{ background:radial-gradient(circle at 50% 34%, #eef7ff, #8cc2f2 50%, #3d8fe0); border-color:#4f97e3; box-shadow:0 5px 16px -6px rgba(61,143,224,.6), inset 0 1.5px 3px rgba(255,255,255,.5) }
+.bmedal.r-epico{ background:radial-gradient(circle at 50% 34%, #f7eeff, #c79bef 48%, #9b5de5); border-color:#a974e8; box-shadow:0 6px 18px -6px rgba(155,93,229,.62), inset 0 1.5px 3px rgba(255,255,255,.5) }
+.bmedal.r-lendario{ background:radial-gradient(circle at 50% 32%, #fff6e3, #ffd27a 42%, #e0922b); border-color:#e6a23c; box-shadow:0 7px 22px -6px rgba(224,146,43,.68), inset 0 1.5px 3px rgba(255,255,255,.5) }
+.bmedal.is-locked{ background:var(--bg); border-color:var(--line); box-shadow:none; filter:grayscale(1) }
+.bmedal-lg{ width:96px; height:96px; font-size:46px; margin-bottom:6px }
 .bkicker{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted) }
 .bmtitle{ font-size:19px; font-weight:600 }
 .bmdesc{ font-size:13px; color:var(--muted); line-height:1.45 }
@@ -461,7 +468,7 @@ a.km-src{ color:var(--heat-b) }
 .trrow-t{ font-size:15px; font-weight:600 }
 .trrow-c{ font-size:12px; color:var(--muted) }
 .trrow-cards{ display:flex; gap:12px; overflow-x:auto; padding-bottom:8px }
-.tbadge{ position:relative; flex:0 0 116px; background:var(--surface); border:.5px solid var(--line); border-radius:16px; padding:16px 10px 14px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; text-align:center; font:inherit; transition:transform 90ms var(--eof) }
+.tbadge{ position:relative; flex:0 0 134px; background:var(--surface); border:.5px solid var(--line); border-radius:16px; padding:18px 12px 14px; display:flex; flex-direction:column; align-items:center; gap:9px; cursor:pointer; text-align:center; font:inherit; transition:transform 90ms var(--eof) }
 .tbadge:active{ transform:scale(.96) }
 .tbadge.locked{ opacity:.55 } .tbadge.locked .bicon{ filter:grayscale(1) }
 .tbadge.earned.r-raro .bicon{ border-color:#378ADD }

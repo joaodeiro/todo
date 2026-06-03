@@ -69,7 +69,7 @@ export function Gallery({ states }) {
                 return (
                   <button key={s.key} className={`tbadge ${s.earned ? 'earned' : 'locked'} ${R[s.rarity] || ''}`} onClick={() => setSel(s)}>
                     {s.earned && <div className="bcheck">✓</div>}
-                    <div className="bicon"><Emblem kind={TRAIL_ICON[s.trail] || s.kind} tier={s.tier} mystery={mystery} /></div>
+                    <div className={`bmedal ${R[s.rarity] || ''} ${s.earned ? '' : 'is-locked'}`}>{mystery ? '❓' : s.icon}</div>
                     <div className="btitle">{mystery ? 'Secreta' : s.title}</div>
                     {!s.earned && !mystery && s.hasProgress && (
                       <>
@@ -95,7 +95,7 @@ function BadgeModal({ s, onClose }) {
   return (
     <div className="badge-overlay" onClick={onClose}>
       <div className="badge-card" onClick={e => e.stopPropagation()}>
-        <div className={`bicon-big ${R[s.rarity] || ''}`}><Emblem kind={TRAIL_ICON[s.trail] || s.kind} tier={s.tier} mystery={mystery} size={40} /></div>
+        <div className={`bmedal bmedal-lg ${R[s.rarity] || ''} ${s.earned ? '' : 'is-locked'}`}>{mystery ? '❓' : s.icon}</div>
         <div className="bkicker">{status} · {s.rarity}</div>
         <div className="bmtitle">{mystery ? '???' : s.title}</div>
         <div className="bmdesc">{mystery ? 'Continue jogando pra descobrir o que desbloqueia essa. 👀' : s.desc}</div>
