@@ -193,8 +193,16 @@ export async function createCardFull(fields) {
   if (!user) return null
   let waId = null
   if (fields.areaCode) { const { data: wa } = await supabase.from('work_area').select('id').eq('code', fields.areaCode).single(); waId = wa ? wa.id : null }
+  // gera um código sequencial pra área (ex.: PROD-44) — assim o card tem código e URL amigável
+  let legacy_id = null
+  if (fields.areaCode) {
+    const { data: rows } = await supabase.from('item').select('legacy_id').eq('environment', 'trabalho').ilike('legacy_id', `${fields.areaCode}-%`)
+    let max = 0
+    ;(rows || []).forEach(r => { const m = (r.legacy_id || '').match(/-(\d+)$/); if (m) max = Math.max(max, parseInt(m[1], 10)) })
+    legacy_id = `${fields.areaCode}-${max + 1}`
+  }
   const { data: card } = await supabase.from('item').insert({
-    environment: 'trabalho', primitive: 'card', status: 'backlog',
+    environment: 'trabalho', primitive: 'card', status: 'backlog', legacy_id,
     title: (fields.title || '').trim() || 'Sem título', work_area_id: waId,
     notes: fields.contexto ? String(fields.contexto).trim() : null,
     origem: fields.origem ? String(fields.origem).trim() : null

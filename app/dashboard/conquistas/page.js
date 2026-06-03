@@ -179,14 +179,23 @@ export default async function Conquistas() {
     ['Colecionador Iniciante', 'Caçador de Medalhas', 'Vitrine Cheia', 'Colecionador de Elite', 'Quase Lá', 'Tudo ou Nada'],
     [5, 10, 25, 50, 75, 100], L6, earnedCount, t => `${t} conquistas desbloqueadas no total.`))
 
+  const earned = S.filter(s => s.earned).length, totalA = S.length
+  const pct = totalA ? Math.round(100 * earned / totalA) : 0
+  let rank = 'Iniciante'
+  for (const [p, n] of [[0, 'Iniciante'], [12, 'Aprendiz'], [28, 'Praticante'], [45, 'Veterano'], [65, 'Mestre'], [85, 'Lenda']]) if (pct >= p) rank = n
   return (
     <main className="dash wide">
       <header className="section-head">
         <div className="section-head-l">
           <h1 className="section-title">Conquistas</h1>
-          <span className="section-meta">{S.filter(s => s.earned).length} de {S.length} desbloqueadas</span>
+          <span className="section-meta">{earned} de {totalA} desbloqueadas</span>
         </div>
       </header>
+      <div className="ach-hero">
+        <div className="ach-hero-top"><span className="ach-hero-rank">{rank}</span><span className="ach-hero-pct">{pct}%</span></div>
+        <div className="ach-hero-bar"><div style={{ width: pct + '%' }} /></div>
+        <div className="ach-hero-meta">{earned} de {totalA} conquistas desbloqueadas · próximo posto conforme você avança</div>
+      </div>
       <Gallery states={S} />
     </main>
   )

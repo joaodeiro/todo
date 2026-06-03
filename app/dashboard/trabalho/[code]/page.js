@@ -11,8 +11,12 @@ export default async function Page({ params }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code)
+  const cardQ = isUuid
+    ? supabase.from('item').select('*').eq('environment', 'trabalho').eq('id', code).maybeSingle()
+    : supabase.from('item').select('*').eq('environment', 'trabalho').ilike('legacy_id', code).maybeSingle()
   const [{ data: card }, { data: areas }] = await Promise.all([
-    supabase.from('item').select('*').eq('environment', 'trabalho').ilike('legacy_id', code).maybeSingle(),
+    cardQ,
     supabase.from('work_area').select('*').order('code'),
   ])
   if (!card) {
