@@ -15,12 +15,23 @@ export function DemandPage({ initialCard, areas }) {
   const codeToId = {}; (areas || []).forEach(a => { codeToId[a.code] = a.id })
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
 
+  function setStatus(id, status) {
+    setCard(c => {
+      let next = { ...c, status }
+      if (c.timer_started_at && status !== 'fazendo') {
+        const el = Math.max(0, Math.floor((Date.now() - Date.parse(c.timer_started_at)) / 1000))
+        next = { ...next, secs: (c.secs || 0) + (el >= 60 ? el : 0), timer_started_at: null }
+      }
+      return next
+    })
+    moveCard(id, status)
+    try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
+  }
   function move(id, dir) {
     const i = ORDER.indexOf(card.status || 'backlog')
     const ni = Math.max(0, Math.min(ORDER.length - 1, i + dir)); if (ni === i) return
-    setCard(c => ({ ...c, status: ORDER[ni] })); moveCard(id, ORDER[ni])
+    setStatus(id, ORDER[ni])
   }
-  function setStatus(id, status) { setCard(c => ({ ...c, status })); moveCard(id, status) }
   function block(c, type, note) {
     const nb = !c.blocked
     setCard(s => ({ ...s, blocked: nb, block_reason: nb ? type : null, block_note: nb ? note : null }))
@@ -29,12 +40,16 @@ export function DemandPage({ initialCard, areas }) {
   async function save(id, fields) {
     const waId = fields.areaCode ? codeToId[fields.areaCode] : null
     setCard(c => ({ ...c, title: fields.title, notes: fields.contexto || null, work_area_id: waId }))
-    await updateCard(id, { title: fields.title, contexto: fields.contexto, areaCode: fields.areaCode })
+    const patch = await updateCard(id, { title: fields.title, contexto: fields.contexto, areaCode: fields.areaCode })
+    if (patch && patch.legacy_id) {
+      setCard(c => ({ ...c, legacy_id: patch.legacy_id }))
+      router.replace(`/dashboard/trabalho/${encodeURIComponent(patch.legacy_id)}`)
+    }
   }
   async function remove(id) { await deleteItem(id); router.push('/dashboard/trabalho') }
   function play(c) {
     if (c.timer_started_at) return
-    const iso = new Date().toISOString(); setCard(s => ({ ...s, timer_started_at: iso })); startTimer(c.id)
+    const iso = new Date().toISOString(); setCard(s => ({ ...s, timer_started_at: iso, status: 'fazendo' })); startTimer(c.id)
     try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
   }
   function pause(c) {

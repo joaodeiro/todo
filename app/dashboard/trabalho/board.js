@@ -109,8 +109,17 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
   }
   function moveTo(id, status) {
     const card = cards.find(c => c.id === id); if (!card || (card.status || 'backlog') === status) return
-    setCards(s => s.map(c => c.id === id ? { ...c, status } : c))
+    setCards(s => s.map(c => {
+      if (c.id !== id) return c
+      let next = { ...c, status }
+      if (c.timer_started_at && status !== 'fazendo') {
+        const el = Math.max(0, Math.floor((Date.now() - Date.parse(c.timer_started_at)) / 1000))
+        next = { ...next, secs: (c.secs || 0) + (el >= 60 ? el : 0), timer_started_at: null }
+      }
+      return next
+    }))
     moveCard(id, status)
+    try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
   }
   // solta o card numa posição: reordena dentro da coluna (e muda status se cruzou coluna)
   function performDrop(id, status, targetId, before) {
@@ -124,8 +133,23 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
     const newList = [...rest.slice(0, idx), dragged, ...rest.slice(idx)]
     const sortById = {}; newList.forEach((c, i) => { sortById[c.id] = i + 1 })
     const statusChanged = (dragged.status || 'backlog') !== status
-    setCards(s => s.map(c => sortById[c.id] != null ? { ...c, sort: sortById[c.id], status: c.id === id ? status : c.status } : c))
-    if (statusChanged) moveCard(id, status)
+    setCards(s => s.map(c => {
+      if (sortById[c.id] == null) return c
+      let next = { ...c, sort: sortById[c.id] }
+      if (c.id === id) {
+        next.status = status
+        if (c.timer_started_at && status !== 'fazendo') {
+          const el = Math.max(0, Math.floor((Date.now() - Date.parse(c.timer_started_at)) / 1000))
+          next.secs = (c.secs || 0) + (el >= 60 ? el : 0)
+          next.timer_started_at = null
+        }
+      }
+      return next
+    }))
+    if (statusChanged) {
+      moveCard(id, status)
+      try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
+    }
     reorderCards(newList.map(c => c.id))
   }
   function toggleBlock(card, type, note) {
@@ -150,7 +174,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
   function doPlay(card) {
     const iso = new Date().toISOString()
     setCards(s => s.map(c => {
-      if (c.id === card.id) return { ...c, timer_started_at: iso }
+      if (c.id === card.id) return { ...c, timer_started_at: iso, status: 'fazendo' }
       if (c.timer_started_at) { const el = Math.max(0, Math.floor((Date.now() - Date.parse(c.timer_started_at)) / 1000)); return { ...c, secs: (c.secs || 0) + (el >= 60 ? el : 0), timer_started_at: null } }
       return c
     }))

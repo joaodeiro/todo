@@ -129,6 +129,15 @@ export async function moveCard(id, status) {
   if (!user) return
   const patch = { status }
   if (status === 'concluido') patch.completed_at = new Date().toISOString()
+  // sair de Fazendo com o relógio rodando → para o relógio (registra se ≥ 1 min)
+  if (status !== 'fazendo') {
+    const { data: it } = await supabase.from('item').select('timer_started_at').eq('id', id).single()
+    if (it && it.timer_started_at) {
+      const secs = Math.max(0, Math.floor((Date.now() - new Date(it.timer_started_at).getTime()) / 1000))
+      if (secs >= 60) await supabase.from('time_entry').insert({ item_id: id, seconds: secs })
+      patch.timer_started_at = null
+    }
+  }
   await supabase.from('item').update(patch).eq('id', id)
   await supabase.from('event').insert({ type: 'card_moved', item_id: id, payload: { status } })
 }
@@ -176,7 +185,15 @@ export async function setBlocked(id, blocked, type, note) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
+  // ao destravar, o motivo é apagado do item — então leio antes pra registrar o que estava travando
+  const { data: prev } = await supabase.from('item').select('block_reason, block_note').eq('id', id).single()
   await supabase.from('item').update({ blocked: !!blocked, block_reason: blocked ? (type || null) : null, block_note: blocked ? (note || null) : null }).eq('id', id)
+  // registra o momento (bloqueio tem função: marca uma espera/dependência; o desbloqueio é quando ela se resolve)
+  if (blocked) {
+    await supabase.from('event').insert({ type: 'item_blocked', item_id: id, payload: { reason: type || null, note: note || null } })
+  } else {
+    await supabase.from('event').insert({ type: 'item_unblocked', item_id: id, payload: { reason: (prev && prev.block_reason) || null, note: (prev && prev.block_note) || null } })
+  }
 }
 
 export async function updateCard(id, fields) {
@@ -191,7 +208,18 @@ export async function updateCard(id, fields) {
     if (fields.areaCode) { const { data: wa } = await supabase.from('work_area').select('id').eq('code', fields.areaCode).single(); patch.work_area_id = wa ? wa.id : null }
     else patch.work_area_id = null
   }
+  // demanda sem código que ganha área → gera o código sequencial da área na hora
+  if ('areaCode' in fields && fields.areaCode) {
+    const { data: cur } = await supabase.from('item').select('legacy_id').eq('id', id).single()
+    if (cur && !cur.legacy_id) {
+      const { data: rows } = await supabase.from('item').select('legacy_id').eq('environment', 'trabalho').ilike('legacy_id', `${fields.areaCode}-%`)
+      let max = 0
+      ;(rows || []).forEach(r => { const m = (r.legacy_id || '').match(/-(\d+)$/); if (m) max = Math.max(max, parseInt(m[1], 10)) })
+      patch.legacy_id = `${fields.areaCode}-${max + 1}`
+    }
+  }
   if (Object.keys(patch).length) await supabase.from('item').update(patch).eq('id', id)
+  return patch
 }
 
 export async function createCardFull(fields) {
@@ -232,7 +260,12 @@ export async function startTimer(id) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
   await stopRunningTimers(supabase)
-  await supabase.from('item').update({ timer_started_at: new Date().toISOString() }).eq('id', id)
+  // puxar pra Fazendo: cronômetro rodando implica status 'fazendo'
+  const { data: it } = await supabase.from('item').select('status').eq('id', id).single()
+  const patch = { timer_started_at: new Date().toISOString() }
+  if (it && it.status !== 'fazendo') { patch.status = 'fazendo'; patch.completed_at = null }
+  await supabase.from('item').update(patch).eq('id', id)
+  if (patch.status) await supabase.from('event').insert({ type: 'card_moved', item_id: id, payload: { status: 'fazendo', via: 'timer' } })
 }
 
 export async function stopTimer(id) {

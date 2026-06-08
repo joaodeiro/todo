@@ -36,7 +36,7 @@ export function NovaDemanda({ areas }) {
           </div>
           <div className="dmd-bar-actions">
             <button className="dmd-ghost" onClick={() => router.push('/dashboard/trabalho')}>cancelar</button>
-            <button className="km-save" disabled={saving || !title.trim()} onClick={create}>{saving ? 'criando…' : 'criar demanda'}</button>
+            <button className="km-save" disabled={saving || !title.trim() || !areaSel} onClick={create}>{saving ? 'criando…' : 'criar demanda'}</button>
           </div>
         </div>
 
@@ -60,14 +60,14 @@ export function NovaDemanda({ areas }) {
                   {STATUSES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                 </select>
               </div>
-              <div className="dmd-prop"><span className="dmd-pk">Área</span>
+              <div className="dmd-prop"><span className="dmd-pk">Área *</span>
                 <select className="sel sel-sm" value={areaSel} onChange={e => setAreaSel(e.target.value)}>
                   <option value="">—</option>
                   {(areas || []).map(a => <option key={a.code} value={a.code}>{a.code}</option>)}
                 </select>
               </div>
             </div>
-            <p className="dmd-hint">Tempo, anexos e links ficam disponíveis assim que a demanda for criada — você cai direto na página dela.</p>
+            <p className="dmd-hint">Título e área são obrigatórios — o código (ex.: PROD-12) nasce da área. Tempo, anexos e links ficam disponíveis assim que a demanda for criada.</p>
           </aside>
         </div>
       </div>
