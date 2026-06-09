@@ -498,3 +498,31 @@ a.km-src{ color:var(--heat-b) }
 .theme-sw{ display:flex; gap:4px }
 .tsw{ width:28px; height:28px; border:.5px solid var(--line); background:var(--surface); border-radius:8px; cursor:pointer; font-size:13px; line-height:1; padding:0 }
 .tsw.on{ border-color:var(--heat-a) }
+
+/* embarques (subtarefas da demanda) */
+.kc-emb{ font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; display:inline-flex; align-items:center; gap:3px }
+.kc-emb.full{ color:#1D9E75; font-weight:600 }
+.embx{ display:flex; flex-direction:column; gap:14px }
+.emb-add{ display:flex; gap:8px }
+.emb-add input{ flex:1; font:inherit; font-size:13.5px; padding:9px 11px; border:.5px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink) }
+.emb-add button{ font:inherit; font-size:13px; padding:0 14px; border:.5px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); cursor:pointer; white-space:nowrap }
+.emb-add button:disabled{ opacity:.4; cursor:default }
+.emb-progress{ display:flex; align-items:center; gap:10px }
+.emb-bar{ flex:1; height:6px; border-radius:999px; background:var(--line); overflow:hidden }
+.emb-bar span{ display:block; height:100%; background:linear-gradient(90deg,var(--heat-c),var(--heat-a)); border-radius:999px; transition:width .4s var(--eof) }
+.emb-count{ font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums }
+.emb-empty{ font-size:13px; color:var(--muted); padding:6px 0 }
+.emb-list{ display:flex; flex-direction:column; gap:2px }
+.emb-row{ display:flex; align-items:center; gap:9px; padding:8px 8px; border-radius:9px; transition:background 90ms var(--eof) }
+.emb-row:hover{ background:rgba(140,134,124,.07) }
+.emb-row.dragging{ opacity:.4 }
+.emb-row.over{ box-shadow:inset 0 -2px 0 0 var(--heat-a) }
+.emb-grip{ color:var(--muted); opacity:.45; cursor:grab; font-size:12px; line-height:1; letter-spacing:-2px; user-select:none }
+.emb-check{ flex:0 0 auto; width:20px; height:20px; border:1.5px solid var(--line); border-radius:6px; background:var(--surface); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; line-height:1; padding:0 }
+.emb-check.on{ background:#1D9E75; border-color:#1D9E75 }
+.emb-title{ flex:1; font-size:13.5px; color:var(--ink); cursor:text }
+.emb-row.done .emb-title{ color:var(--muted); text-decoration:line-through }
+.emb-edit{ flex:1; font:inherit; font-size:13.5px; padding:5px 8px; border:.5px solid var(--heat-a); border-radius:7px; background:var(--surface); color:var(--ink) }
+.emb-del{ flex:0 0 auto; background:none; border:none; color:var(--muted); cursor:pointer; opacity:0; padding:4px; display:flex; transition:opacity 90ms }
+.emb-row:hover .emb-del{ opacity:.6 }
+.emb-del:hover{ opacity:1; color:var(--heat-b) }

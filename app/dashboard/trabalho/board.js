@@ -79,10 +79,11 @@ function StatusPill({ status }) {
   return <span className="dmd-pill"><span className="dmd-pill-dot" style={{ background: color }} />{label}</span>
 }
 
-export function KanbanBoard({ initialCards, areas, timeTotals }) {
+export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
   const router = useRouter()
   const tt = timeTotals || {}
-  const [cards, setCards] = useState((initialCards || []).map(c => ({ ...c, secs: tt[c.id] || 0 })))
+  const et = embTotals || {}
+  const [cards, setCards] = useState((initialCards || []).map(c => ({ ...c, secs: tt[c.id] || 0, embDone: (et[c.id] || {}).done || 0, embTotal: (et[c.id] || {}).total || 0 })))
   const [now, setNow] = useState(Date.now())
   const [area, setArea] = useState('all')
   const [onlyBlocked, setOnlyBlocked] = useState(false)
@@ -262,6 +263,11 @@ export function KanbanBoard({ initialCards, areas, timeTotals }) {
                         {running ? <Pause /> : <Play />}
                       </button>
                       <span className={`kc-time ${running ? 'on' : ''}`}>{fmt(Math.max(0, liveSecs(c, now)), running)}</span>
+                      {c.embTotal > 0 && (
+                        <span className={`kc-emb ${c.embDone === c.embTotal ? 'full' : ''}`} title={`${c.embDone} de ${c.embTotal} embarques`}>
+                          ☑ {c.embDone}/{c.embTotal}
+                        </span>
+                      )}
                     </div>
                     {confirmDelId === c.id && (
                       <div className="kc-confirm" onClick={e => e.stopPropagation()}>
@@ -302,6 +308,7 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
   const [confirmDel, setConfirmDel] = useState(false)
   const [supabase] = useState(() => createBrowserSupabase())
   const [atts, setAtts] = useState(null)
+  const [embs, setEmbs] = useState(null)
   const [lightbox, setLightbox] = useState(null)
   const [doc, setDoc] = useState(null)
   const i = ORDER.indexOf(card.status || 'backlog')
@@ -325,6 +332,37 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
     setAtts(withUrls)
   }
   useEffect(() => { loadAtts() }, [card.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadEmbs() {
+    const { data } = await supabase.from('embarque').select('*').eq('item_id', card.id).order('sort').order('created_at')
+    setEmbs(data || [])
+  }
+  useEffect(() => { loadEmbs() }, [card.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function addEmb(rawTitle) {
+    const title = (rawTitle || '').trim(); if (!title) return
+    const maxSort = (embs || []).reduce((m, e) => Math.max(m, e.sort || 0), 0)
+    const { data } = await supabase.from('embarque').insert({ item_id: card.id, title, sort: maxSort + 1 }).select().single()
+    if (data) setEmbs(s => [...(s || []), data])
+  }
+  async function toggleEmb(e) {
+    const done = !e.done
+    setEmbs(s => (s || []).map(x => x.id === e.id ? { ...x, done } : x))
+    await supabase.from('embarque').update({ done, completed_at: done ? new Date().toISOString() : null }).eq('id', e.id)
+  }
+  async function renameEmb(id, rawTitle) {
+    const title = (rawTitle || '').trim(); if (!title) return
+    setEmbs(s => (s || []).map(x => x.id === id ? { ...x, title } : x))
+    await supabase.from('embarque').update({ title }).eq('id', id)
+  }
+  async function delEmb(e) {
+    setEmbs(s => (s || []).filter(x => x.id !== e.id))
+    await supabase.from('embarque').delete().eq('id', e.id)
+  }
+  async function reorderEmbs(orderedIds) {
+    setEmbs(s => { const by = {}; (s || []).forEach(x => { by[x.id] = x }); return orderedIds.map((id, i) => ({ ...by[id], sort: i + 1 })) })
+    await Promise.all(orderedIds.map((id, i) => supabase.from('embarque').update({ sort: i + 1 }).eq('id', id)))
+  }
 
   async function addFiles(fileList) {
     const files = Array.from(fileList || [])
@@ -388,6 +426,7 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
       <div className="dmd-tabs">
         <button className={`dmd-tab ${tab === 'geral' ? 'on' : ''}`} onClick={() => setTab('geral')}>Visão geral</button>
         <button className={`dmd-tab ${tab === 'tempo' ? 'on' : ''}`} onClick={() => setTab('tempo')}>Tempo · {fmt(Math.max(0, liveSecs(card, now)))}</button>
+        <button className={`dmd-tab ${tab === 'embarques' ? 'on' : ''}`} onClick={() => setTab('embarques')}>Embarques{embs && embs.length ? ` · ${embs.filter(e => e.done).length}/${embs.length}` : ''}</button>
         <button className={`dmd-tab ${tab === 'anexos' ? 'on' : ''}`} onClick={() => setTab('anexos')}>Anexos · {atts ? atts.length : 0}</button>
       </div>
 
@@ -408,6 +447,7 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
             </>
           )}
           {tab === 'tempo' && <TempoTab card={card} now={now} onPlay={onPlay} onPause={onPause} onAddTime={onAddTime} />}
+          {tab === 'embarques' && <EmbarquesTab embs={embs} onAdd={addEmb} onToggle={toggleEmb} onRename={renameEmb} onDelete={delEmb} onReorder={reorderEmbs} />}
           {tab === 'anexos' && <AnexosTab atts={atts} onAdd={addFiles} onAddLink={addLink} onDelete={delAtt} onOpen={openAtt} />}
         </div>
 
@@ -424,6 +464,7 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
                 {(areas || []).map(a => <option key={a.code} value={a.code}>{a.code}</option>)}
               </select>
             </div>
+            <div className="dmd-prop"><span className="dmd-pk">Embarques</span><span className="dmd-pv">{embs ? `${embs.filter(e => e.done).length}/${embs.length}` : '—'}</span></div>
             <div className="dmd-prop"><span className="dmd-pk">Tempo</span><span className="dmd-pv">{fmt(Math.max(0, liveSecs(card, now)))}</span></div>
             <div className="dmd-prop"><span className="dmd-pk">Anexos</span><span className="dmd-pv">{atts ? atts.length : 0}</span></div>
           </div>
@@ -516,6 +557,76 @@ function AnexosTab({ atts, onAdd, onAddLink, onDelete, onOpen }) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function EmbarquesTab({ embs, onAdd, onToggle, onRename, onDelete, onReorder }) {
+  const [novo, setNovo] = useState('')
+  const [editId, setEditId] = useState(null)
+  const [editTxt, setEditTxt] = useState('')
+  const [dragId, setDragId] = useState(null)
+  const [overId, setOverId] = useState(null)
+  const list = embs || []
+  const done = list.filter(e => e.done).length
+  const pct = list.length ? Math.round((done / list.length) * 100) : 0
+
+  function submitNew(e) { e.preventDefault(); if (!novo.trim()) return; onAdd(novo); setNovo('') }
+  function startEdit(e) { setEditId(e.id); setEditTxt(e.title || '') }
+  function commitEdit() { if (editId) { onRename(editId, editTxt); setEditId(null); setEditTxt('') } }
+  function drop(targetId) {
+    setOverId(null)
+    if (!dragId || dragId === targetId) { setDragId(null); return }
+    const ids = list.map(e => e.id)
+    const from = ids.indexOf(dragId); const to = ids.indexOf(targetId)
+    if (from < 0 || to < 0) { setDragId(null); return }
+    ids.splice(to, 0, ids.splice(from, 1)[0])
+    setDragId(null)
+    onReorder(ids)
+  }
+
+  return (
+    <div className="embx">
+      <form className="emb-add" onSubmit={submitNew}>
+        <input value={novo} onChange={e => setNovo(e.target.value)} placeholder="Novo embarque — uma etapa da demanda…" maxLength={200} />
+        <button disabled={!novo.trim()}>＋ embarque</button>
+      </form>
+
+      {list.length > 0 && (
+        <div className="emb-progress">
+          <div className="emb-bar"><span style={{ width: pct + '%' }} /></div>
+          <span className="emb-count">{done}/{list.length}</span>
+        </div>
+      )}
+
+      {embs === null && <div className="emb-empty">carregando…</div>}
+      {embs && list.length === 0 && <div className="emb-empty">Nenhum embarque ainda. Quebre a demanda em etapas marcáveis.</div>}
+
+      <div className="emb-list">
+        {list.map(e => (
+          <div key={e.id}
+            className={`emb-row ${e.done ? 'done' : ''} ${dragId === e.id ? 'dragging' : ''} ${overId === e.id ? 'over' : ''}`}
+            draggable={editId !== e.id}
+            onDragStart={ev => { setDragId(e.id); ev.dataTransfer.effectAllowed = 'move' }}
+            onDragEnd={() => { setDragId(null); setOverId(null) }}
+            onDragOver={ev => { ev.preventDefault(); if (overId !== e.id) setOverId(e.id) }}
+            onDrop={ev => { ev.preventDefault(); drop(e.id) }}>
+            <span className="emb-grip" aria-hidden="true">⋮⋮</span>
+            <button className={`emb-check ${e.done ? 'on' : ''}`} onClick={() => onToggle(e)} aria-label={e.done ? 'desmarcar' : 'marcar'}>
+              {e.done ? '✓' : ''}
+            </button>
+            {editId === e.id ? (
+              <input className="emb-edit" autoFocus value={editTxt} maxLength={200}
+                onChange={ev => setEditTxt(ev.target.value)}
+                onBlur={commitEdit}
+                onKeyDown={ev => { if (ev.key === 'Enter') commitEdit(); if (ev.key === 'Escape') { setEditId(null); setEditTxt('') } }} />
+            ) : (
+              <span className="emb-title" onClick={() => startEdit(e)}>{e.title}</span>
+            )}
+            <button className="emb-del" onClick={() => onDelete(e)} aria-label="excluir embarque"><Trash /></button>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
