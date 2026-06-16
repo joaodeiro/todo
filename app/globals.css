@@ -526,3 +526,143 @@ a.km-src{ color:var(--heat-b) }
 .emb-del{ flex:0 0 auto; background:none; border:none; color:var(--muted); cursor:pointer; opacity:0; padding:4px; display:flex; transition:opacity 90ms }
 .emb-row:hover .emb-del{ opacity:.6 }
 .emb-del:hover{ opacity:1; color:var(--heat-b) }
+
+/* logo da marca (adaptável a tema) */
+:root, html[data-theme="cream"], html[data-theme="light"]{ --logo-accent:#BE6900 }
+html[data-theme="dark"]{ --logo-accent:#E5A33A }
+.side-logo{ background:none; box-shadow:none; border-radius:0; width:auto; height:34px }
+.lg-logo{ display:flex; justify-content:center; margin-bottom:20px }
+
+/* wordmark ZenFlow (serifa Newsreader, estilo editorial) */
+.wordmark{ font-family:'Newsreader', Georgia, 'Times New Roman', serif; font-weight:500; letter-spacing:.005em }
+.side-brand .wordmark{ font-size:18px; font-weight:500 }
+.lg-brand{ display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:22px }
+.lg-wm{ font-size:27px; line-height:1; color:var(--ink) }
+
+/* ===================== DIA A DIA (Vida) ===================== */
+/* abas da área (Registro / Rotinas) */
+.areatabs{ display:flex; gap:22px; border-bottom:.5px solid var(--line); margin:18px 0 0 }
+.areatab{ background:none; border:none; padding:0 0 11px; font:inherit; font-size:14.5px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; display:flex; align-items:center; gap:7px }
+.areatab.on{ color:var(--ink); font-weight:500; border-bottom-color:var(--ink) }
+.areatab-n{ font-size:11px; font-weight:600; color:#fff; background:var(--heat-a); border-radius:999px; min-width:18px; height:18px; padding:0 5px; display:inline-flex; align-items:center; justify-content:center }
+/* toggle quadro/lista */
+.viewtoggle{ display:flex; gap:2px; background:rgba(42,39,36,.05); border:.5px solid var(--line); border-radius:10px; padding:2px }
+.vt{ display:flex; align-items:center; gap:6px; font:inherit; font-size:12.5px; color:var(--muted); background:none; border:none; border-radius:8px; padding:6px 11px; cursor:pointer }
+.vt.on{ background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(42,39,36,.08) }
+/* chip de categoria no card */
+.lc-cat{ font-size:10.5px; color:var(--muted); background:rgba(140,134,124,.12); border-radius:5px; padding:2px 7px; white-space:nowrap }
+.lc-due{ font-size:10.5px; font-weight:600; border-radius:5px; padding:2px 7px; white-space:nowrap }
+.lc-due-late{ color:#fff; background:var(--heat-b) }
+.lc-due-today{ color:var(--heat-a); background:rgba(230,76,40,.12) }
+.lc-due-soon{ color:#185FA5; background:rgba(55,138,221,.12) }
+.lc-due-far{ color:var(--muted); background:rgba(140,134,124,.12) }
+.kcol-done{ background:rgba(29,158,117,.05) }
+/* lista por status */
+.lifelist{ display:flex; flex-direction:column; gap:20px; margin-top:18px }
+.ll-group{ display:flex; flex-direction:column; gap:7px }
+.ll-h{ display:flex; align-items:center; gap:9px; font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); margin-bottom:2px }
+.ll-n{ color:var(--muted); font-weight:400 }
+.ll-dot{ width:8px; height:8px; border-radius:50%; background:var(--muted) }
+.ll-dot[data-s="backlog"]{ background:#8C867C } .ll-dot[data-s="aguardando"]{ background:#E6A23C }
+.ll-dot[data-s="fazendo"]{ background:#378ADD } .ll-dot[data-s="concluido"]{ background:#1D9E75 }
+.ll-row{ display:flex; align-items:center; gap:10px; padding:11px 14px; border:.5px solid var(--line); border-radius:12px; background:var(--surface); cursor:pointer; transition:border-color .12s }
+.ll-row:hover{ border-color:rgba(42,39,36,.2) }
+.ll-row.blk{ border-color:rgba(218,32,55,.4); background:rgba(218,32,55,.03) }
+.ll-row.done .ll-title{ color:var(--muted); text-decoration:line-through }
+.ll-cat{ flex:none; font-size:14px }
+.ll-title{ flex:1; font-size:14px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.ll-tag{ color:var(--heat-b); display:flex; flex:none }
+.ll-btn{ flex:none; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border:.5px solid var(--line); border-radius:7px; background:var(--surface); color:var(--ink); cursor:pointer; padding:0 }
+.ll-btn.on{ background:var(--heat-a); color:#fff; border-color:var(--heat-a) }
+.ll-adv{ flex:none; width:26px; height:26px; border:.5px solid var(--line); border-radius:7px; background:var(--surface); color:var(--muted); font-size:14px; cursor:pointer; padding:0 }
+.ll-adv:hover{ color:var(--ink); border-color:rgba(42,39,36,.22) }
+/* rotinas */
+.rotinas{ display:flex; flex-direction:column; gap:22px; margin-top:20px }
+.rit-group{ display:flex; flex-direction:column; gap:3px }
+.rit-gh{ display:flex; align-items:baseline; gap:10px; margin-bottom:7px }
+.rit-gt{ font-size:14px; font-weight:600 }
+.rit-gs{ font-size:12px; color:var(--muted) }
+.rit-row{ display:flex; align-items:center; gap:12px; padding:11px 8px; border-radius:10px; transition:background .1s }
+.rit-row:hover{ background:rgba(140,134,124,.06) }
+.rit-check{ position:relative; flex:none; width:26px; height:26px; border-radius:8px; border:2px solid rgba(42,39,36,.22); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:border-color .15s,background .15s }
+.rit-check svg{ width:15px; height:15px }
+.rit-check .chk{ stroke:#fff; stroke-width:2.6; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:22; stroke-dashoffset:22 }
+.rit-check.on{ background:var(--heat-a); border-color:var(--heat-a) }
+.rit-check.on .chk{ stroke-dashoffset:0; transition:stroke-dashoffset .3s var(--eof) }
+.rit-title{ flex:1; font-size:14.5px; cursor:text }
+.rit-row.done .rit-title{ color:var(--muted) }
+.rit-cad{ font-size:11.5px; color:var(--muted); background:rgba(140,134,124,.12); border-radius:5px; padding:2px 8px; flex:none }
+.rit-period{ font-size:11.5px; color:var(--muted); flex:none; min-width:74px; text-align:right }
+.rit-period.ok{ color:#1D9E75; font-weight:600 }
+/* picker de categoria no criar */
+.catpick{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px }
+.catopt{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; text-align:left; border:1px solid var(--line); border-radius:13px; padding:13px 14px; background:var(--surface); cursor:pointer; font:inherit; transition:border-color .12s, background .12s }
+.catopt:hover{ border-color:rgba(42,39,36,.22) }
+.catopt.on{ border-color:var(--heat-a); background:rgba(230,76,40,.05); box-shadow:0 0 0 3px rgba(230,76,40,.1) }
+.catopt-ico{ font-size:20px; line-height:1 }
+.catopt-l{ font-size:14px; font-weight:600; color:var(--ink) }
+.catopt-h{ font-size:11.5px; color:var(--muted); line-height:1.3 }
+.catnote{ font-size:12.5px; color:var(--muted); line-height:1.45 }
+/* select de Área da Vida no topo do criar */
+.ci-area{ display:flex; align-items:center; gap:12px; padding:12px 14px; border:.5px solid var(--line); border-radius:13px; background:var(--bg); margin-bottom:18px }
+.ci-area-lbl{ font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); flex:none }
+.ci-area-sel{ flex:1; font-size:14px; font-weight:500 }
+@media (max-width:640px){ .catpick{ grid-template-columns:1fr } }
+/* card Hoje na home */
+.hojecard{ display:flex; align-items:center; gap:14px; margin-top:22px; padding:16px 18px; border:.5px solid var(--line); border-radius:16px; background:var(--surface); transition:transform 90ms var(--eof),border-color .15s,box-shadow .15s }
+.hojecard:hover{ transform:translateY(-2px); border-color:rgba(42,39,36,.2); box-shadow:0 8px 22px rgba(42,39,36,.06) }
+.hojecard.has{ border-color:rgba(230,76,40,.32); background:linear-gradient(120deg, rgba(249,201,114,.10), rgba(230,76,40,.06)) }
+.hojecard-ico{ font-size:24px; flex:none }
+.hojecard-txt{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0 }
+.hojecard-t{ font-size:15px; font-weight:600 }
+.hojecard-s{ font-size:13px; color:var(--muted) }
+.hojecard-go{ color:var(--muted); font-size:18px; flex:none }
+/* painel Hoje */
+.hj-progress{ display:flex; align-items:center; gap:12px; margin:18px 0 8px }
+.hj-bar{ flex:1; height:8px; border-radius:999px; background:var(--bg); border:.5px solid var(--line); overflow:hidden }
+.hj-bar span{ display:block; height:100%; background:linear-gradient(90deg,var(--heat-c),var(--heat-a),var(--heat-b)); border-radius:999px; transition:width .4s var(--eof) }
+.hj-count{ font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; flex:none }
+.hj-sec{ margin-top:22px }
+.hj-sech{ font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:10px }
+.hj-row{ display:flex; align-items:flex-start; gap:13px; padding:13px 14px; border:.5px solid var(--line); border-radius:14px; background:var(--surface); margin-bottom:9px; position:relative; overflow:visible }
+.hj-row.done{ background:rgba(29,158,117,.04) }
+.hj-row.done .hj-title{ color:var(--muted); text-decoration:line-through }
+.hj-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:5px }
+.hj-title{ font-size:15px; line-height:1.3 }
+.hj-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap }
+.hj-area{ font-size:11.5px; color:var(--ink); background:var(--bg); border:.5px solid var(--line); border-radius:6px; padding:2px 8px }
+.hj-area:hover{ border-color:rgba(42,39,36,.22) }
+.hj-tag{ font-size:11.5px; color:var(--muted) }
+.hj-tag-agenda{ color:#185FA5 } .hj-tag-rec{ color:#7F5BD8 }
+.hj-link{ color:var(--heat-b); text-decoration:underline }
+.hj-row .rit-check{ margin-top:1px }
+/* streak */
+.hj-headrow{ display:flex; align-items:center; gap:12px }
+.streakflame{ font-size:14px; font-weight:600; color:var(--muted); background:rgba(140,134,124,.12); border-radius:999px; padding:4px 11px; font-variant-numeric:tabular-nums }
+.streakflame.on{ color:var(--heat-a); background:rgba(230,76,40,.12) }
+.streakline{ font-size:13.5px; color:var(--muted); margin:14px 0 4px }
+.streakline strong{ color:var(--heat-a) }
+.streakline.atrisk{ color:var(--heat-b) }
+/* faixa de chamas por área (Hoje) */
+.chamas{ display:flex; gap:8px; flex-wrap:wrap; margin:16px 0 4px }
+.chama-chip{ display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink); background:rgba(230,76,40,.08); border:.5px solid rgba(230,76,40,.28); border-radius:999px; padding:5px 12px; text-decoration:none }
+.chama-chip:hover{ border-color:var(--heat-a) }
+.chama-chip strong{ color:var(--heat-a); font-variant-numeric:tabular-nums }
+.hj-titlelink{ text-decoration:none; color:var(--ink); cursor:pointer }
+.hj-titlelink:hover{ text-decoration:underline; text-decoration-color:var(--line) }
+/* tag de categoria no topo da página da demanda de vida */
+.li-cattag{ display:inline-block; font-size:12px; color:var(--muted); background:var(--surface); border:.5px solid var(--line); border-radius:999px; padding:4px 12px; margin:6px 0 14px }
+/* skip (pular recorrente) */
+.rit-skip,.hj-skip{ flex:none; background:none; border:.5px solid var(--line); border-radius:8px; color:var(--muted); font:inherit; font-size:11.5px; padding:4px 9px; cursor:pointer; white-space:nowrap }
+.rit-skip:hover,.hj-skip:hover{ border-color:rgba(42,39,36,.22); color:var(--ink) }
+.rit-skiptag{ font-size:11.5px; color:var(--muted); flex:none; white-space:nowrap }
+.rit-skipconfirm{ font-size:11.5px; color:var(--heat-b); flex:none; white-space:nowrap; display:flex; gap:6px; align-items:center }
+.rit-skipconfirm .link,.rit-skiptag .link{ font-size:11.5px }
+.rit-row.skipped{ opacity:.6 }
+.rit-row.skipped .rit-title{ text-decoration:line-through; color:var(--muted) }
+.rit-row.skipped .rit-check{ opacity:.4; cursor:default }
+.rit-sched{ font-size:11px; font-weight:600; color:#185FA5; background:rgba(55,138,221,.1); border-radius:5px; padding:2px 7px; flex:none }
+.hj-skip{ align-self:center }
+/* dia+hora no criar */
+.ci-when{ display:flex; gap:8px }
+.ci-when .sel{ flex:1 } .ci-when input[type=time]{ width:104px; flex:none }

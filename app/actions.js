@@ -299,6 +299,150 @@ export async function listTimeEntries(id) {
   return data || []
 }
 
+// ===== Vida: dia a dia (rotinas, do dia, quando der) =====
+const LIFE_STATUSES = ['backlog', 'aguardando', 'fazendo', 'concluido']
+
+export async function createLifeItem(fields) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !fields.title?.trim() || !fields.domainId) return null
+  const title = fields.title.trim()
+  const notes = fields.notes ? String(fields.notes).trim() : null
+  const origem = fields.origem ? String(fields.origem).trim() : null
+
+  if (fields.category === 'rotina') {
+    const config = { cadence: fields.cadence || 'diaria' }
+    if (fields.anchor) config.anchor = fields.anchor
+    if (config.cadence === 'semanal' && fields.weekday != null && fields.weekday !== '') {
+      config.weekday = Number(fields.weekday)
+      if (fields.time) config.time = String(fields.time)
+    }
+    const { data } = await supabase.from('item').insert({
+      environment: 'vida', primitive: 'ritual', domain_id: fields.domainId,
+      title, notes, origem, config, status: null, sort: 999999
+    }).select().single()
+    return data
+  }
+
+  const category = fields.category === 'agenda' ? 'agenda' : 'solta'
+  const status = LIFE_STATUSES.includes(fields.status) ? fields.status : 'backlog'
+  const { data } = await supabase.from('item').insert({
+    environment: 'vida', primitive: 'task', domain_id: fields.domainId,
+    title, notes, origem,
+    due_at: category === 'agenda' && fields.due_at ? new Date(fields.due_at).toISOString() : null,
+    config: { life_kind: category }, status, sort: 999999,
+    completed_at: status === 'concluido' ? new Date().toISOString() : null
+  }).select().single()
+  return data
+}
+
+export async function updateLifeItem(id, fields) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  const patch = {}
+  if (fields.title != null) patch.title = String(fields.title).trim()
+  if ('contexto' in fields) patch.notes = fields.contexto ? String(fields.contexto).trim() : null
+  if ('origem' in fields) patch.origem = fields.origem ? String(fields.origem).trim() : null
+  if ('due_at' in fields) patch.due_at = fields.due_at ? new Date(fields.due_at).toISOString() : null
+  if ('cadence' in fields || 'weekday' in fields || 'time' in fields) {
+    const { data: cur } = await supabase.from('item').select('config').eq('id', id).single()
+    const config = { ...((cur && cur.config) || {}) }
+    if ('cadence' in fields && fields.cadence) config.cadence = fields.cadence
+    if ('weekday' in fields) {
+      if (fields.weekday === '' || fields.weekday == null) delete config.weekday
+      else config.weekday = Number(fields.weekday)
+    }
+    if ('time' in fields) { if (fields.time) config.time = String(fields.time); else delete config.time }
+    patch.config = config
+  }
+  if (Object.keys(patch).length) await supabase.from('item').update(patch).eq('id', id)
+  return patch
+}
+
+// marca/desmarca uma rotina no ciclo atual — deixa rastro via evento ritual_done
+export async function toggleRitual(itemId, domainId, periodKey, done) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !itemId || !periodKey) return
+  if (done) {
+    // concluir tira um eventual "pulada" do mesmo período
+    const { data: sk } = await supabase.from('event').select('id,payload').eq('item_id', itemId).eq('type', 'ritual_skipped')
+    const skIds = (sk || []).filter(e => e.payload && e.payload.period === periodKey).map(e => e.id)
+    if (skIds.length) await supabase.from('event').delete().in('id', skIds)
+    const { data: ex } = await supabase.from('event').select('id,payload').eq('item_id', itemId).eq('type', 'ritual_done')
+    const already = (ex || []).some(e => e.payload && e.payload.period === periodKey)
+    if (!already) {
+      await supabase.from('event').insert({ type: 'ritual_done', item_id: itemId, domain_id: domainId || null, payload: { period: periodKey } })
+    }
+  } else {
+    const { data: ex } = await supabase.from('event').select('id,payload').eq('item_id', itemId).eq('type', 'ritual_done')
+    const ids = (ex || []).filter(e => e.payload && e.payload.period === periodKey).map(e => e.id)
+    if (ids.length) await supabase.from('event').delete().in('id', ids)
+  }
+}
+
+// pular uma recorrente no ciclo atual: vira "pulada", volta pendente no próximo ciclo.
+// skip de DIÁRIA quebra o streak. skip=false desfaz.
+export async function skipRitual(itemId, domainId, periodKey, cadence, skip = true) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !itemId || !periodKey) return
+  if (skip) {
+    // tira um eventual "feito" do período
+    const { data: dn } = await supabase.from('event').select('id,payload').eq('item_id', itemId).eq('type', 'ritual_done')
+    const dnIds = (dn || []).filter(e => e.payload && e.payload.period === periodKey).map(e => e.id)
+    if (dnIds.length) await supabase.from('event').delete().in('id', dnIds)
+    const { data: ex } = await supabase.from('event').select('id,payload').eq('item_id', itemId).eq('type', 'ritual_skipped')
+    const already = (ex || []).some(e => e.payload && e.payload.period === periodKey)
+    if (!already) await supabase.from('event').insert({ type: 'ritual_skipped', item_id: itemId, domain_id: domainId || null, payload: { period: periodKey, cadence: cadence || null } })
+  } else {
+    const { data: ex } = await supabase.from('event').select('id,payload').eq('item_id', itemId).eq('type', 'ritual_skipped')
+    const ids = (ex || []).filter(e => e.payload && e.payload.period === periodKey).map(e => e.id)
+    if (ids.length) await supabase.from('event').delete().in('id', ids)
+  }
+}
+
+// Chama por categoria/área: streak DIÁRIO estrito (passou 1 dia sem nada na área, zera).
+// Basta 1 atividade na área no dia (rotina feita, tarefa de vida concluída, ou momento) pra pontuar.
+const BRT = 3 * 3600 * 1000
+function dayIdx(ts) { return Math.floor((new Date(ts).getTime() - BRT) / 86400000) }
+function strictStreak(daySet, today) {
+  if (!daySet || !daySet.size) return { current: 0, longest: 0 }
+  let current = 0
+  if (daySet.has(today) || daySet.has(today - 1)) {
+    let d = daySet.has(today) ? today : today - 1
+    while (daySet.has(d)) { current++; d-- }
+  }
+  const arr = [...daySet].sort((a, b) => a - b)
+  let longest = 0, run = 0, prev = null
+  for (const d of arr) { run = (prev !== null && d === prev + 1) ? run + 1 : 1; if (run > longest) longest = run; prev = d }
+  return { current, longest }
+}
+export async function getStreaks() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { byDomain: {}, trab: { current: 0, longest: 0 }, best: 0 }
+  const since = new Date(Date.now() - 420 * 86400000).toISOString()
+  const [{ data: revs }, { data: vd }, { data: mom }, { data: trab }] = await Promise.all([
+    supabase.from('event').select('domain_id,occurred_at').eq('type', 'ritual_done').gte('occurred_at', since),
+    supabase.from('item').select('domain_id,completed_at').eq('environment', 'vida').in('status', ['done', 'concluido']).not('completed_at', 'is', null).gte('completed_at', since),
+    supabase.from('presence_moment').select('domain_id,occurred_at').gte('occurred_at', since),
+    supabase.from('item').select('completed_at').eq('environment', 'trabalho').eq('status', 'concluido').not('completed_at', 'is', null).gte('completed_at', since),
+  ])
+  const today = dayIdx(Date.now())
+  const sets = {}
+  const add = (dom, ts) => { if (!dom || !ts) return; (sets[dom] = sets[dom] || new Set()).add(dayIdx(ts)) }
+  ;(revs || []).forEach(e => add(e.domain_id, e.occurred_at))
+  ;(vd || []).forEach(i => add(i.domain_id, i.completed_at))
+  ;(mom || []).forEach(m => add(m.domain_id, m.occurred_at))
+  const trabSet = new Set(); (trab || []).forEach(i => trabSet.add(dayIdx(i.completed_at)))
+  const byDomain = {}; let best = 0
+  for (const id in sets) { const r = strictStreak(sets[id], today); byDomain[id] = r; if (r.longest > best) best = r.longest }
+  const trabR = strictStreak(trabSet, today); if (trabR.longest > best) best = trabR.longest
+  return { byDomain, trab: trabR, best }
+}
+
 export async function signOut() {
   const supabase = createClient()
   await supabase.auth.signOut()

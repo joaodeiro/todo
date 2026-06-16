@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Gallery } from './gallery'
+import { getStreaks } from '@/app/actions'
 
 export const dynamic = 'force-dynamic'
 export const preferredRegion = 'gru1'
@@ -42,15 +43,18 @@ export default async function Conquistas() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')
 
-  const [vd, dm, tr, ar, teq, atq] = await Promise.all([
-    supabase.from('item').select('completed_at,domain_id').eq('environment', 'vida').eq('status', 'done'),
+  const [vd, dm, tr, ar, teq, atq, streak] = await Promise.all([
+    supabase.from('item').select('completed_at,domain_id').eq('environment', 'vida').in('status', ['done', 'concluido']),
     supabase.from('domain').select('id,slug,name,kind').eq('kind', 'maestria').order('sort'),
     supabase.from('item').select('id,status,work_area_id,blocked').eq('environment', 'trabalho'),
     supabase.from('work_area').select('id,code'),
     supabase.from('time_entry').select('item_id,seconds'),
-    supabase.from('attachment').select('kind')
+    supabase.from('attachment').select('kind'),
+    getStreaks()
   ])
   const vidaDone = vd.data || [], domains = dm.data || [], trab = tr.data || [], areas = ar.data || [], te = teq.data || [], atts = atq.data || []
+  const streakBest = (streak && streak.best) || 0
+  const streakNow = Math.max(0, (streak && streak.trab && streak.trab.current) || 0, ...Object.values((streak && streak.byDomain) || {}).map(s => s.current || 0))
 
   // ---- contexto Vida ----
   const domBySlug = {}; domains.forEach(d => { domBySlug[d.id] = d.slug })
@@ -115,10 +119,14 @@ export default async function Conquistas() {
     S.push(...ladder(`lvl-${d.slug}`, d.name, 10 + i, DOM_ICON[d.slug] || '⭐', names, [5, 10, 25, 50, 100], L5, domainCount[d.slug] || 0, t => `${t} tarefas concluídas em ${d.name}.`))
   })
 
+  // 1.5 — Chama: streak diário (coleção dedicada à consistência)
+  const L8 = ['comum', 'comum', 'raro', 'epico', 'epico', 'lendario', 'lendario', 'lendario']
+  S.push(...ladder('chama', 'Chama 🔥 — Dias Seguidos', 1.5, '🔥',
+    ['Três Dias', 'Semana de Fogo', 'Duas Semanas', 'Mês Inteiro', 'Sessenta Dias', 'Centenário', 'Duzentos Dias', 'Um Ano de Chama'],
+    [3, 7, 14, 30, 60, 100, 200, 365], L8, streakBest, t => `${t} dias seguidos com algo numa mesma área. Faça 1 coisa por dia na área pra manter a chama.`))
+  S.push(uniq('chama-now', 'Chama 🔥 — Dias Seguidos', 1.5, '✨', 'Chama Acesa', 'Você está com um streak ativo agora mesmo. Mantém viva!', 'raro', streakNow >= 1, false, 9))
+
   // 20 — Frequência
-  S.push(...ladder('streak', 'Frequência', 20, '🔥',
-    ['Dois Dias', 'Semana Cheia', 'Quinzena de Fogo', 'Mês Inteiro', 'Sessenta Dias', 'Centenário'],
-    [2, 7, 14, 30, 60, 100], L6, longest, t => `${t} dias seguidos com algo concluído.`))
   S.push(...ladder('day', 'Frequência', 20, '⚡',
     ['Dia Produtivo', 'Dia Insano', 'Dia Lendário'],
     [3, 5, 10], ['comum', 'raro', 'epico'], doneInDayMax, t => `${t} tarefas concluídas num único dia.`))
