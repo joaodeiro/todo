@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Logo } from '@/app/logo'
 
 const LAST_KEY = 'todo:lastUser'
 
@@ -61,6 +62,7 @@ export default function Home() {
   return (
     <main className="wrap">
       <div className="card">
+        <div className="lg-brand"><Logo size={40} /><span className="wordmark lg-wm">ZenFlow</span></div>
         {view === 'returning' && last ? (
           <div className="lg-ret">
             <div className="lg-ava">{(last.name || '?').trim().charAt(0).toUpperCase()}</div>
@@ -85,7 +87,7 @@ export default function Home() {
           </form>
         ) : (
           <>
-            <h1>Seu sistema 🔥</h1>
+            <h1>Sobe no seu ritmo</h1>
             <p className="sub">{mode === 'login' ? 'Entra com e-mail e senha.' : 'Cria tua conta.'}</p>
             <form onSubmit={signIn}>
               <input type="email" required placeholder="voce@email.com" value={email} onChange={e => setEmail(e.target.value)} />
