@@ -6,9 +6,10 @@
 // Tudo é client-safe (funções puras), sem 'use server'.
 
 export const LIFE_CATS = [
-  { key: 'agenda', label: 'Do dia', icon: '📅', hint: 'tem uma data' },
-  { key: 'solta', label: 'Quando der', icon: '🌱', hint: 'sem prazo, não recorrente' },
-  { key: 'rotina', label: 'Rotina', icon: '🔁', hint: 'recorrente, reseta sozinha' },
+  { key: 'do_dia', label: 'Do dia', icon: '📅', hint: 'tem uma data' },
+  { key: 'quando_der', label: 'Quando der', icon: '🌱', hint: 'sem data até priorizar' },
+  { key: 'recorrente', label: 'Recorrente', icon: '🔁', hint: 'repete por cadência' },
+  { key: 'geral', label: 'Geral', icon: '🗂️', hint: 'demanda comum (inclui trabalho)' },
 ]
 
 export const CADENCES = [
@@ -33,9 +34,15 @@ export const LIFE_ORDER = LIFE_COLS.map(c => c.key)
 export function cadenceLabel(key) { const c = CADENCES.find(c => c.key === key); return c ? c.label : 'Diária' }
 export function cadenceShort(key) { const c = CADENCES.find(c => c.key === key); return c ? c.short : 'todo dia' }
 export function catOf(item) {
-  if (item.primitive === 'ritual') return 'rotina'
-  return (item.config && item.config.life_kind) || (item.due_at ? 'agenda' : 'solta')
+  if (item.primitive === 'ritual') return 'recorrente'
+  const t = item.config && item.config.type
+  if (t) return t
+  const lk = item.config && item.config.life_kind // compat com itens antigos
+  if (lk === 'agenda') return 'do_dia'
+  if (lk === 'solta') return 'quando_der'
+  return item.due_at ? 'do_dia' : 'quando_der'
 }
+export function markedToday(item) { return !!(item.config && item.config.fazer_hoje) }
 export function cadenceOf(item) { return (item.config && item.config.cadence) || 'diaria' }
 
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x }

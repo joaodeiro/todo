@@ -299,8 +299,16 @@ export async function listTimeEntries(id) {
   return data || []
 }
 
-// ===== Vida: dia a dia (rotinas, do dia, quando der) =====
+// ===== Vida: dia a dia (do dia, quando der, recorrente, geral) =====
 const LIFE_STATUSES = ['backlog', 'aguardando', 'fazendo', 'concluido']
+// data só-dia ('YYYY-MM-DD') salva ao meio-dia UTC: neutra a fuso, não recua pro dia anterior no BRT.
+function dueToIso(s) {
+  if (!s) return null
+  const str = String(s)
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(str) ? new Date(str + 'T12:00:00Z') : new Date(str)
+  return isNaN(d.getTime()) ? null : d.toISOString()
+}
+function isTodayDue(iso) { return iso ? dayIdx(iso) === dayIdx(Date.now()) : false }
 
 export async function createLifeItem(fields) {
   const supabase = createClient()
@@ -310,8 +318,8 @@ export async function createLifeItem(fields) {
   const notes = fields.notes ? String(fields.notes).trim() : null
   const origem = fields.origem ? String(fields.origem).trim() : null
 
-  if (fields.category === 'rotina') {
-    const config = { cadence: fields.cadence || 'diaria' }
+  if (fields.category === 'recorrente') {
+    const config = { type: 'recorrente', cadence: fields.cadence || 'diaria' }
     if (fields.anchor) config.anchor = fields.anchor
     if (config.cadence === 'semanal' && fields.weekday != null && fields.weekday !== '') {
       config.weekday = Number(fields.weekday)
@@ -319,21 +327,33 @@ export async function createLifeItem(fields) {
     }
     const { data } = await supabase.from('item').insert({
       environment: 'vida', primitive: 'ritual', domain_id: fields.domainId,
-      title, notes, origem, config, status: null, sort: 999999
+      title, notes, origem, config, status: 'backlog', sort: 999999
     }).select().single()
     return data
   }
 
-  const category = fields.category === 'agenda' ? 'agenda' : 'solta'
-  const status = LIFE_STATUSES.includes(fields.status) ? fields.status : 'backlog'
+  const type = ['do_dia', 'quando_der', 'geral'].includes(fields.category) ? fields.category : 'quando_der'
+  const due = dueToIso(fields.due_at)
+  // se está pro dia (data = hoje), já entra como Aguardando (priorizada). senão, Backlog.
+  let status = LIFE_STATUSES.includes(fields.status) ? fields.status : (isTodayDue(due) ? 'aguardando' : 'backlog')
   const { data } = await supabase.from('item').insert({
     environment: 'vida', primitive: 'task', domain_id: fields.domainId,
-    title, notes, origem,
-    due_at: category === 'agenda' && fields.due_at ? new Date(fields.due_at).toISOString() : null,
-    config: { life_kind: category }, status, sort: 999999,
+    title, notes, origem, due_at: due, config: { type }, status, sort: 999999,
     completed_at: status === 'concluido' ? new Date().toISOString() : null
   }).select().single()
   return data
+}
+
+// "Fazer hoje": joga a data pra hoje, prioriza (Aguardando) e marca o rótulo.
+export async function fazerHoje(id) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data: cur } = await supabase.from('item').select('config,status').eq('id', id).single()
+  const config = { ...((cur && cur.config) || {}), fazer_hoje: true }
+  const status = (cur && cur.status === 'fazendo') ? 'fazendo' : 'aguardando'
+  await supabase.from('item').update({ due_at: dueToIso(new Date().toLocaleDateString('en-CA')), status, config }).eq('id', id)
+  return { status, config }
 }
 
 export async function updateLifeItem(id, fields) {
@@ -344,7 +364,14 @@ export async function updateLifeItem(id, fields) {
   if (fields.title != null) patch.title = String(fields.title).trim()
   if ('contexto' in fields) patch.notes = fields.contexto ? String(fields.contexto).trim() : null
   if ('origem' in fields) patch.origem = fields.origem ? String(fields.origem).trim() : null
-  if ('due_at' in fields) patch.due_at = fields.due_at ? new Date(fields.due_at).toISOString() : null
+  if ('due_at' in fields) {
+    patch.due_at = dueToIso(fields.due_at)
+    // pro dia (hoje) → prioriza pra Aguardando; tira o rótulo "fazer hoje" se a data sair de hoje
+    const { data: cur } = await supabase.from('item').select('status,config').eq('id', id).single()
+    if (isTodayDue(patch.due_at)) { if (cur && cur.status === 'backlog') patch.status = 'aguardando' }
+    else if (cur && cur.config && cur.config.fazer_hoje) { patch.config = { ...cur.config, fazer_hoje: false } }
+  }
+  if ('domainId' in fields && fields.domainId) patch.domain_id = fields.domainId
   if ('cadence' in fields || 'weekday' in fields || 'time' in fields) {
     const { data: cur } = await supabase.from('item').select('config').eq('id', id).single()
     const config = { ...((cur && cur.config) || {}) }

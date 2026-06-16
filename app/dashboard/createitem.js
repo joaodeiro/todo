@@ -8,15 +8,21 @@ import { LIFE_CATS, CADENCES, WEEKDAYS } from '@/app/life'
 // Vem pré-selecionada quando criada de dentro de uma área, mas dá pra trocar.
 export function CreateItemModal({ areas, domainId, onClose, onCreated }) {
   const list = areas || []
+  const today = () => new Date().toLocaleDateString('en-CA')
   const [area, setArea] = useState(domainId || (list[0] && list[0].id) || '')
-  const [category, setCategory] = useState('agenda')
+  const [category, setCategory] = useState('do_dia')
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [cadence, setCadence] = useState('diaria')
   const [weekday, setWeekday] = useState('1')
   const [time, setTime] = useState('08:00')
-  const [due, setDue] = useState('')
+  const [due, setDue] = useState(() => today()) // "Do dia" começa hoje; "Quando der" fica vazio
   const [saving, setSaving] = useState(false)
+  function pickCategory(key) {
+    setCategory(key)
+    if (key === 'do_dia') setDue(d => d || today())
+    if (key === 'quando_der') setDue('')
+  }
 
   async function create() {
     if (!title.trim() || !area) return
@@ -48,7 +54,7 @@ export function CreateItemModal({ areas, domainId, onClose, onCreated }) {
 
         <div className="catpick">
           {LIFE_CATS.map(c => (
-            <button key={c.key} className={`catopt ${category === c.key ? 'on' : ''}`} onClick={() => setCategory(c.key)}>
+            <button key={c.key} className={`catopt ${category === c.key ? 'on' : ''}`} onClick={() => pickCategory(c.key)}>
               <span className="catopt-ico">{c.icon}</span>
               <span className="catopt-l">{c.label}</span>
               <span className="catopt-h">{c.hint}</span>
@@ -63,14 +69,14 @@ export function CreateItemModal({ areas, domainId, onClose, onCreated }) {
             <textarea className="km-ta" rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Contexto, links, o que precisa…" />
           </div>
           <aside className="km-side">
-            {category === 'rotina' && (
+            {category === 'recorrente' && (
               <div className="km-prop km-prop-col"><span className="km-pk">Cadência</span>
                 <select className="sel sel-sm" value={cadence} onChange={e => setCadence(e.target.value)}>
                   {CADENCES.map(c => <option key={c.key} value={c.key}>{c.label} — {c.short}</option>)}
                 </select>
               </div>
             )}
-            {category === 'rotina' && cadence === 'semanal' && (
+            {category === 'recorrente' && cadence === 'semanal' && (
               <div className="km-prop km-prop-col"><span className="km-pk">Roda em</span>
                 <div className="ci-when">
                   <select className="sel sel-sm" value={weekday} onChange={e => setWeekday(e.target.value)}>
@@ -81,16 +87,17 @@ export function CreateItemModal({ areas, domainId, onClose, onCreated }) {
                 <span className="catnote">Fica pendente a partir desse dia/horário, toda semana.</span>
               </div>
             )}
-            {category === 'agenda' && (
+            {category !== 'recorrente' && (
               <div className="km-prop km-prop-col"><span className="km-pk">Data</span>
-                <input type="date" className="km-input" style={{ margin: 0 }} value={due} onChange={e => setDue(e.target.value)} />
+                <input type="date" className="km-input" style={{ margin: 0 }} value={due} onChange={e => setDue(e.target.value)} placeholder="sem data" />
+                {!due && <span className="catnote">Sem data: fica no Backlog até você priorizar (ou usar “Fazer hoje”).</span>}
               </div>
             )}
-            {category !== 'rotina' && (
-              <div className="km-prop"><span className="km-pk">Status</span><span className="km-pv">Backlog</span></div>
+            {category !== 'recorrente' && (
+              <div className="km-prop"><span className="km-pk">Status</span><span className="km-pv">{due === today() ? 'Aguardando' : 'Backlog'}</span></div>
             )}
             <div className="km-prop km-prop-col"><span className="km-pk">Em {areaName}</span>
-              <span className="catnote">{category === 'rotina' ? 'Repete sozinha e aparece no Hoje a cada ciclo.' : category === 'agenda' ? 'Tem data e aparece no Hoje quando vencer.' : 'Sem prazo. Fica no Backlog até você puxar.'}</span>
+              <span className="catnote">{category === 'recorrente' ? 'Repete sozinha e aparece no Hoje a cada ciclo.' : 'Com data de hoje já entra como Aguardando e aparece no Hoje.'}</span>
             </div>
           </aside>
         </div>

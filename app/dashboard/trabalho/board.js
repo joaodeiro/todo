@@ -300,10 +300,12 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
   )
 }
 
-export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, onBlock, onSave, onDelete, onPlay, onPause, onAddTime }) {
+export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurrent, areaLabel, onMove, onSetStatus, onBlock, onSave, onDelete, onPlay, onPause, onAddTime }) {
   const [tab, setTab] = useState('geral')
   const [title, setTitle] = useState(card.title || '')
-  const [areaSel, setAreaSel] = useState(areaCode[card.work_area_id] || '')
+  const _areaOpts = areaOptions || (areas || []).map(a => ({ value: a.code, label: a.code }))
+  const [areaSel, setAreaSel] = useState(areaCurrent != null ? areaCurrent : (areaCode[card.work_area_id] || ''))
+  const _areaText = (_areaOpts.find(o => o.value === areaSel) || {}).label || areaLabel || 'sem área'
   const [contexto, setContexto] = useState(card.notes || '')
   const [confirmDel, setConfirmDel] = useState(false)
   const [supabase] = useState(() => createBrowserSupabase())
@@ -418,7 +420,7 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
 
       <textarea ref={titleRef} className="dmd-title" rows={1} value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da demanda" />
       <div className="dmd-metarow">
-        <span>{areaSel || 'sem área'}</span><span className="dmd-sep">·</span>
+        <span>{_areaText}</span><span className="dmd-sep">·</span>
         <span>{card.origem || 'sem origem'}</span><span className="dmd-sep">·</span>
         <span>⏱ {fmt(Math.max(0, liveSecs(card, now)))}</span>
       </div>
@@ -461,7 +463,7 @@ export function DemandDetail({ card, now, areas, areaCode, onMove, onSetStatus, 
             <div className="dmd-prop"><span className="dmd-pk">Área</span>
               <select className="sel sel-sm" value={areaSel} onChange={e => setAreaSel(e.target.value)}>
                 <option value="">—</option>
-                {(areas || []).map(a => <option key={a.code} value={a.code}>{a.code}</option>)}
+                {_areaOpts.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
               </select>
             </div>
             <div className="dmd-prop"><span className="dmd-pk">Embarques</span><span className="dmd-pv">{embs ? `${embs.filter(e => e.done).length}/${embs.length}` : '—'}</span></div>

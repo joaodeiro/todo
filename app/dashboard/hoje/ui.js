@@ -5,7 +5,7 @@ import { toggleRitual, skipRitual, moveCard } from '@/app/actions'
 import { CreateItemModal } from '@/app/dashboard/createitem'
 import {
   cadenceOf, cadenceLabel, periodKey, periodLabel, isRitualDone, doneSet, dueLabel,
-  skipSet, isRitualSkipped, isActiveNow, isDueToday, scheduleLabel
+  skipSet, isRitualSkipped, isActiveNow, isDueToday, scheduleLabel, markedToday
 } from '@/app/life'
 
 const COLORS = ['#E64C28', '#DA2037', '#F9C972', '#1D9E75', '#7F77DD']
@@ -128,7 +128,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, ritualEvents, sk
               <div className="hj-sech">Pra hoje</div>
               {agOpen.map(t => {
                 const due = dueLabel(t.due_at)
-                return <HojeRow key={t.id} item={t} domMap={domMap} on={false} onToggle={completeAgenda} sub={`📅 ${due ? due.txt : 'do dia'}`} />
+                return <HojeRow key={t.id} item={t} domMap={domMap} on={false} onToggle={completeAgenda} sub={markedToday(t) ? '🎯 marcado pra hoje' : `📅 ${due ? due.txt : 'do dia'}`} />
               })}
               {focoRituals.map(r => (
                 <HojeRow key={r.id} item={r} domMap={domMap} on={false} onToggle={flipRitual} onSkip={skipR}

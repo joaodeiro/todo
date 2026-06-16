@@ -21,10 +21,11 @@ export default async function Page({ params }) {
       </main>
     )
   }
-  const [{ data: dom }, { data: te }] = await Promise.all([
+  const [{ data: dom }, { data: te }, { data: domains }] = await Promise.all([
     supabase.from('domain').select('slug,name').eq('id', card.domain_id).single(),
     supabase.from('time_entry').select('seconds').eq('item_id', card.id),
+    supabase.from('domain').select('id,name').eq('kind', 'maestria').order('sort'),
   ])
   const secs = (te || []).reduce((a, t) => a + (t.seconds || 0), 0)
-  return <LifeItemPage initialCard={{ ...card, secs }} domain={dom || null} />
+  return <LifeItemPage initialCard={{ ...card, secs }} domain={dom || null} domains={domains || []} />
 }
