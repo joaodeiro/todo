@@ -207,7 +207,7 @@ export function AreaWorkspace({ domain, areas, initialTasks, initialRituals, tim
           <button className={`vt ${view === 'quadro' ? 'on' : ''}`} onClick={() => setView('quadro')} aria-label="quadro"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="18" rx="1.4" /><rect x="14" y="3" width="7" height="11" rx="1.4" /></svg> Quadro</button>
           <button className={`vt ${view === 'lista' ? 'on' : ''}`} onClick={() => setView('lista')} aria-label="lista"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg> Lista</button>
         </div>
-        {['all', 'do_dia', 'quando_der', 'recorrente', 'geral'].map(k => (
+        {['all', 'do_dia', 'quando_der', 'recorrente'].map(k => (
           <button key={k} className={`btab ${cat === k ? 'on' : ''}`} onClick={() => setCat(k)}>{k === 'all' ? 'Tudo' : catMeta(k).icon + ' ' + catMeta(k).label}</button>
         ))}
         <input className="ksearch" value={q} onChange={e => setQ(e.target.value)} placeholder="buscar…" />

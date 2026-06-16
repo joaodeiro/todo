@@ -9,7 +9,6 @@ export const LIFE_CATS = [
   { key: 'do_dia', label: 'Do dia', icon: '📅', hint: 'tem uma data' },
   { key: 'quando_der', label: 'Quando der', icon: '🌱', hint: 'sem data até priorizar' },
   { key: 'recorrente', label: 'Recorrente', icon: '🔁', hint: 'repete por cadência' },
-  { key: 'geral', label: 'Geral', icon: '🗂️', hint: 'demanda comum (inclui trabalho)' },
 ]
 
 export const CADENCES = [
