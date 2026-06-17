@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { DemandDetail } from '../board'
 import { updateCard, moveCard, setBlocked, deleteItem, startTimer, stopTimer, addTime } from '@/app/actions'
+import { toastSave } from '@/app/toast'
 
 const ORDER = ['backlog', 'aguardando', 'fazendo', 'concluido']
+const STATUS_LABEL = { backlog: 'Backlog', aguardando: 'Aguardando', fazendo: 'Fazendo', concluido: 'Concluído' }
 
 export function DemandPage({ initialCard, areas }) {
   const router = useRouter()
@@ -24,7 +26,7 @@ export function DemandPage({ initialCard, areas }) {
       }
       return next
     })
-    moveCard(id, status)
+    toastSave(moveCard(id, status), { success: `Movido para ${STATUS_LABEL[status]}` })
     try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
   }
   function move(id, dir) {
@@ -35,7 +37,7 @@ export function DemandPage({ initialCard, areas }) {
   function block(c, type, note) {
     const nb = !c.blocked
     setCard(s => ({ ...s, blocked: nb, block_reason: nb ? type : null, block_note: nb ? note : null }))
-    setBlocked(c.id, nb, type, note)
+    toastSave(setBlocked(c.id, nb, type, note), { success: nb ? 'Demanda bloqueada' : 'Demanda desbloqueada' })
   }
   async function save(id, fields) {
     const waId = fields.areaCode ? codeToId[fields.areaCode] : null
@@ -46,7 +48,7 @@ export function DemandPage({ initialCard, areas }) {
       router.replace(`/dashboard/trabalho/${encodeURIComponent(patch.legacy_id)}`)
     }
   }
-  async function remove(id) { await deleteItem(id); router.push('/dashboard/trabalho') }
+  async function remove(id) { await toastSave(deleteItem(id), { loading: 'Excluindo…', success: 'Demanda excluída' }); router.push('/dashboard/trabalho') }
   function play(c) {
     if (c.timer_started_at) return
     const iso = new Date().toISOString(); setCard(s => ({ ...s, timer_started_at: iso, status: 'fazendo' })); startTimer(c.id)

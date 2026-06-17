@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createCardFull, moveCard, reorderCards, setBlocked, updateCard, deleteItem, startTimer, stopTimer, addTime, listTimeEntries } from '@/app/actions'
 import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
+import { toast, toastSave } from '@/app/toast'
+
+const STATUS_LABEL = { backlog: 'Backlog', aguardando: 'Aguardando', fazendo: 'Fazendo', concluido: 'Concluído' }
 
 const COLS = [
   { key: 'backlog', label: 'Backlog' },
@@ -110,7 +113,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
     const ni = Math.max(0, Math.min(ORDER.length - 1, i + dir))
     if (ni === i) return
     setCards(s => s.map(c => c.id === id ? { ...c, status: ORDER[ni] } : c))
-    moveCard(id, ORDER[ni])
+    toastSave(moveCard(id, ORDER[ni]), { success: `Movido para ${STATUS_LABEL[ORDER[ni]]}` })
   }
   function moveTo(id, status) {
     const card = cards.find(c => c.id === id); if (!card || (card.status || 'backlog') === status) return
@@ -123,7 +126,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
       }
       return next
     }))
-    moveCard(id, status)
+    toastSave(moveCard(id, status), { success: `Movido para ${STATUS_LABEL[status]}` })
     try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
   }
   // solta o card numa posição: reordena dentro da coluna (e muda status se cruzou coluna)
@@ -161,14 +164,14 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
     const nb = !card.blocked
     const patch = { blocked: nb, block_reason: nb ? type : null, block_note: nb ? note : null }
     setCards(s => s.map(c => c.id === card.id ? { ...c, ...patch } : c))
-    setBlocked(card.id, nb, type, note)
+    toastSave(setBlocked(card.id, nb, type, note), { success: nb ? 'Demanda bloqueada' : 'Demanda desbloqueada' })
   }
   async function save(id, fields) {
     const waId = fields.areaCode ? codeToId[fields.areaCode] : null
     setCards(s => s.map(c => c.id === id ? { ...c, title: fields.title, notes: fields.contexto || null, work_area_id: waId } : c))
     await updateCard(id, { title: fields.title, contexto: fields.contexto, areaCode: fields.areaCode })
   }
-  async function remove(id) { setCards(s => s.filter(c => c.id !== id)); setSelId(null); await deleteItem(id) }
+  async function remove(id) { setCards(s => s.filter(c => c.id !== id)); setSelId(null); await toastSave(deleteItem(id), { loading: 'Excluindo…', success: 'Demanda excluída' }) }
   function play(card) {
     if (card.timer_started_at) return
     const runningCard = cards.find(c => c.timer_started_at)
@@ -361,9 +364,10 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
   useEffect(() => {
     if (skipFirstSave.current) { skipFirstSave.current = false; return }
     setSaving(true)
-    const t = setTimeout(async () => {
-      await onSave(card.id, { title, areaCode: areaSel, contexto })
-      setSaving(false); setSavedOnce(true)
+    const t = setTimeout(() => {
+      toastSave(onSave(card.id, { title, areaCode: areaSel, contexto }), { success: 'Demanda atualizada com sucesso' })
+        .then(() => { setSaving(false); setSavedOnce(true) })
+        .catch(() => setSaving(false))
     }, 700)
     return () => clearTimeout(t)
   }, [title, contexto, areaSel]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -392,7 +396,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
   async function addEmb(rawTitle) {
     const title = (rawTitle || '').trim(); if (!title) return
     const maxSort = (embs || []).reduce((m, e) => Math.max(m, e.sort || 0), 0)
-    const { data } = await supabase.from('embarque').insert({ item_id: card.id, title, sort: maxSort + 1 }).select().single()
+    const { data } = await toastSave(supabase.from('embarque').insert({ item_id: card.id, title, sort: maxSort + 1 }).select().single(), { success: 'Embarque adicionado' })
     if (data) setEmbs(s => [...(s || []), data])
   }
   async function toggleEmb(e) {
@@ -407,7 +411,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
   }
   async function delEmb(e) {
     setEmbs(s => (s || []).filter(x => x.id !== e.id))
-    await supabase.from('embarque').delete().eq('id', e.id)
+    await toastSave(supabase.from('embarque').delete().eq('id', e.id), { loading: 'Removendo…', success: 'Embarque removido' })
   }
   async function reorderEmbs(orderedIds) {
     setEmbs(s => { const by = {}; (s || []).forEach(x => { by[x.id] = x }); return orderedIds.map((id, i) => ({ ...by[id], sort: i + 1 })) })
@@ -416,29 +420,34 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
 
   async function addFiles(fileList) {
     const files = Array.from(fileList || [])
-    for (const file of files) {
-      const ext = (file.name.split('.').pop() || '').toLowerCase()
-      const mime = file.type || ''
-      let kind = 'text'
-      if (mime.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'].includes(ext)) kind = 'image'
-      else if (ext === 'md' || ext === 'markdown') kind = 'md'
-      const path = `${card.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-      const { error } = await supabase.storage.from('attachments').upload(path, file, { contentType: mime || undefined })
-      if (error) { console.error('upload', error); continue }
-      await supabase.from('attachment').insert({ item_id: card.id, kind, filename: file.name, mime, size: file.size, path })
-    }
+    if (!files.length) return
+    await toastSave((async () => {
+      for (const file of files) {
+        const ext = (file.name.split('.').pop() || '').toLowerCase()
+        const mime = file.type || ''
+        let kind = 'text'
+        if (mime.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'].includes(ext)) kind = 'image'
+        else if (ext === 'md' || ext === 'markdown') kind = 'md'
+        const path = `${card.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error } = await supabase.storage.from('attachments').upload(path, file, { contentType: mime || undefined })
+        if (error) { console.error('upload', error); throw error }
+        await supabase.from('attachment').insert({ item_id: card.id, kind, filename: file.name, mime, size: file.size, path })
+      }
+    })(), { loading: 'Enviando…', success: files.length > 1 ? `${files.length} anexos enviados` : 'Anexo enviado', error: 'Falha ao enviar anexo' })
     loadAtts()
   }
   async function delAtt(a) {
     setAtts(s => (s || []).filter(x => x.id !== a.id))
-    if (a.kind !== 'link') await supabase.storage.from('attachments').remove([a.path])
-    await supabase.from('attachment').delete().eq('id', a.id)
+    await toastSave((async () => {
+      if (a.kind !== 'link') await supabase.storage.from('attachments').remove([a.path])
+      await supabase.from('attachment').delete().eq('id', a.id)
+    })(), { loading: 'Removendo…', success: a.kind === 'link' ? 'Link removido' : 'Anexo removido' })
   }
   async function addLink(rawUrl, label) {
     let url = (rawUrl || '').trim()
     if (!url || /^javascript:/i.test(url)) return
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url
-    await supabase.from('attachment').insert({ item_id: card.id, kind: 'link', filename: (label || '').trim() || url, mime: 'link', size: null, path: url })
+    await toastSave(supabase.from('attachment').insert({ item_id: card.id, kind: 'link', filename: (label || '').trim() || url, mime: 'link', size: null, path: url }), { success: 'Link adicionado' })
     loadAtts()
   }
   async function openAtt(a) {
