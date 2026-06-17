@@ -186,14 +186,14 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
       return c
     }))
     startTimer(card.id)
-    try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent('timer-change', { detail: { item: { id: card.id, legacy_id: card.legacy_id, title: card.title, timer_started_at: iso } } })) } catch (e) {}
   }
   function pause(card) {
     const el = Math.max(0, Math.floor((Date.now() - Date.parse(card.timer_started_at)) / 1000))
     const add = el >= 60 ? el : 0
     setCards(s => s.map(c => c.id === card.id ? { ...c, secs: (c.secs || 0) + add, timer_started_at: null } : c))
     stopTimer(card.id)
-    try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent('timer-change', { detail: { item: null } })) } catch (e) {}
   }
   function addManual(id, minutes, note) {
     const secs = Math.round((Number(minutes) || 0) * 60); if (secs === 0) return

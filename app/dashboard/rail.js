@@ -74,10 +74,15 @@ export function RunningTimer() {
     }
     load()
     const poll = setInterval(load, 15000)
-    const onSync = () => load()
-    window.addEventListener('focus', onSync)
+    // o evento chega antes da action gravar: atualiza na hora pelo detail e
+    // reconcilia com o banco depois (a escrita pode levar alguns ms pra cair).
+    const onSync = e => {
+      if (e && e.detail && 'item' in e.detail) setRun(e.detail.item)
+      load(); setTimeout(load, 600); setTimeout(load, 1600)
+    }
+    window.addEventListener('focus', load)
     window.addEventListener('timer-change', onSync)
-    return () => { on = false; clearInterval(poll); window.removeEventListener('focus', onSync); window.removeEventListener('timer-change', onSync) }
+    return () => { on = false; clearInterval(poll); window.removeEventListener('focus', load); window.removeEventListener('timer-change', onSync) }
   }, [supabase])
   useEffect(() => { if (!run) return; const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [run])
   if (!run) return null
