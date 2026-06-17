@@ -733,3 +733,58 @@ html[data-theme="dark"]{ --logo-accent:#E5A33A }
 .toast.is-loading{ position:relative; overflow:hidden; color:var(--muted) }
 .toast.is-loading::after{ content:''; position:absolute; inset:0; background:linear-gradient(100deg, transparent 30%, rgba(230,76,40,.08) 50%, transparent 70%); background-size:200% 100%; animation:toastshimmer 1.1s linear infinite; pointer-events:none }
 @keyframes toastshimmer{ from{ background-position:200% 0 } to{ background-position:-200% 0 } }
+/* mobile: sobe o toaster pra não cobrir a barra inferior */
+@media (max-width:760px){ .toaster{ bottom:calc(86px + env(safe-area-inset-bottom)) } }
+
+/* ===== Calendário ===== */
+.cal-legend{ display:flex; flex-wrap:wrap; gap:14px; margin:16px 0 4px }
+.cal-leg{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted) }
+.cal-leg .dot, .cal-dots .dot, .cal-cell .dot{ width:8px; height:8px; border-radius:50%; flex:none }
+.cal-nav{ display:flex; align-items:center; gap:10px; margin:18px 0 12px; flex-wrap:wrap }
+.cal-nav button{ width:34px; height:34px; display:flex; align-items:center; justify-content:center; border:.5px solid var(--line); background:var(--surface); border-radius:9px; cursor:pointer; font-size:18px; color:var(--ink); padding:0 }
+.cal-nav button:hover{ border-color:rgba(42,39,36,.28) }
+.cal-nav .cal-mon{ font-size:18px; font-weight:600; min-width:158px; text-transform:capitalize }
+.cal-nav .cal-today{ width:auto; padding:0 12px; font-size:13px }
+.cal-nav .cal-cnt{ margin-left:auto; font-size:12px; color:var(--muted) }
+.cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:7px }
+.cal-wd{ text-align:center; font-size:11px; color:var(--muted); padding-bottom:2px }
+.cal-cell{ aspect-ratio:1/1; display:flex; flex-direction:column; gap:4px; padding:7px; border:.5px solid var(--line); border-radius:11px; background:var(--surface); cursor:pointer; text-align:left; font:inherit; color:var(--ink); transition:border-color .12s, box-shadow .12s }
+.cal-cell.empty{ border:none; background:none; cursor:default }
+.cal-cell:hover:not(.empty){ border-color:rgba(42,39,36,.26) }
+.cal-cell.today{ border-color:var(--heat-a) }
+.cal-cell.sel{ border-color:var(--heat-a); box-shadow:0 0 0 2px var(--heat-a) }
+.cal-d{ font-size:12.5px; font-weight:500 }
+.cal-dots{ display:flex; flex-wrap:wrap; align-items:center; gap:3px; margin-top:auto }
+.cal-more{ font-size:10px; color:var(--muted) }
+.cal-day{ margin-top:26px }
+.cal-day h3{ font-size:16px; font-weight:600; text-transform:capitalize; margin-bottom:12px }
+.cal-row{ display:flex; align-items:flex-start; gap:11px; padding:11px 13px; border:.5px solid var(--line); border-radius:12px; background:var(--surface); margin-bottom:8px }
+.cal-row .cr-ic{ width:9px; height:9px; border-radius:50%; margin-top:5px; flex:none }
+.cal-row .cr-b{ min-width:0 }
+.cal-row .cr-t{ font-size:14.5px; line-height:1.35 }
+.cal-row .cr-s{ font-size:11.5px; color:var(--muted); margin-top:2px }
+.cal-empty{ color:var(--muted); font-size:13.5px }
+
+/* ===== Barra inferior (mobile, cara de app) ===== */
+.botnav{ display:none }
+@media (max-width:760px){
+  .side{ display:none }
+  .shell-main{ margin-left:0 }
+  .dash, .dash.wide{ max-width:100%; padding:20px 15px calc(86px + env(safe-area-inset-bottom)) }
+  .topbar{ height:calc(50px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 14px 0 }
+  .botnav{
+    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:50;
+    background:var(--surface); border-top:.5px solid var(--line);
+    padding:7px 4px calc(7px + env(safe-area-inset-bottom)); justify-content:space-around;
+    box-shadow:0 -2px 14px rgba(42,39,36,.06);
+  }
+  .bn-i{ flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:3px 2px; color:var(--muted); text-decoration:none; font-size:10px; line-height:1; }
+  .bn-i svg{ width:22px; height:22px; flex:none }
+  .bn-i span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+  .bn-i.on{ color:var(--heat-a) }
+  .cal-grid{ gap:5px }
+  .cal-cell{ padding:5px; border-radius:9px }
+  .cal-d{ font-size:11.5px }
+  .cal-nav .cal-mon{ min-width:130px; font-size:16px }
+  .runpill{ max-width:62vw }
+}
