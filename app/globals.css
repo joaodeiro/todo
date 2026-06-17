@@ -1,7 +1,7 @@
 :root{ --heat-a:#E64C28; --heat-b:#DA2037; --heat-c:#F9C972; --boing:cubic-bezier(.18,1.7,.5,1); --eof:cubic-bezier(.2,1,.2,1); }
-:root, html[data-theme="cream"]{ --bg:#F2F0EB; --surface:#FFFFFF; --ink:#2A2724; --muted:#8C867C; --line:rgba(42,39,36,.10) }
-html[data-theme="light"]{ --bg:#FBFBF9; --surface:#FFFFFF; --ink:#1E1D1B; --muted:#86827A; --line:rgba(20,20,18,.10) }
-html[data-theme="dark"]{ --bg:#1B1A18; --surface:#262320; --ink:#ECE9E2; --muted:#9A948A; --line:rgba(255,255,255,.11) }
+:root, html[data-theme="cream"]{ --bg:#F2F0EB; --surface:#FFFFFF; --ink:#2A2724; --muted:#8C867C; --line:rgba(42,39,36,.10); --tint:rgba(42,39,36,.04) }
+html[data-theme="light"]{ --bg:#FBFBF9; --surface:#FFFFFF; --ink:#1E1D1B; --muted:#86827A; --line:rgba(20,20,18,.10); --tint:rgba(20,20,18,.04) }
+html[data-theme="dark"]{ --bg:#1B1A18; --surface:#262320; --ink:#ECE9E2; --muted:#9A948A; --line:rgba(255,255,255,.11); --tint:rgba(255,255,255,.05) }
 html{ background:var(--bg) }
 *{ box-sizing:border-box; margin:0; padding:0 }
 body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
@@ -110,11 +110,11 @@ input:focus{ outline:none; border-color:var(--heat-a); }
 /* env tabs (Vida / Trabalho) */
 .envtabs{ display:flex; gap:8px; margin:18px 0 4px }
 .envtab{ font-size:13px; padding:7px 14px; border-radius:100px; border:.5px solid var(--line); color:var(--muted) }
-.envtab.on{ background:var(--ink); color:#fff; border-color:var(--ink) }
+.envtab.on{ background:var(--ink); color:var(--bg); border-color:var(--ink) }
 
 /* kanban (Trabalho) */
 .kanban{ display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; margin-top:16px }
-.kcol{ flex:0 0 220px; background:rgba(42,39,36,.03); border:.5px solid var(--line); border-radius:14px; padding:12px; min-height:120px }
+.kcol{ flex:0 0 220px; background:var(--tint); border:.5px solid var(--line); border-radius:14px; padding:12px; min-height:120px }
 .kcol h3{ font-size:13px; font-weight:600; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center }
 .kcol h3 .n{ color:var(--muted); font-weight:400; font-size:12px }
 .kcard{ background:var(--surface); border:.5px solid var(--line); border-radius:11px; padding:11px 12px; margin-bottom:8px; font-size:13.5px; animation:kpop 320ms var(--boing) }
@@ -135,7 +135,7 @@ input:focus{ outline:none; border-color:var(--heat-a); }
 /* sala de troféus (conquistas) */
 .badge-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 18px }
 .btab{ font-size:12.5px; padding:6px 12px; border-radius:100px; border:.5px solid var(--line); background:var(--surface); color:var(--muted); cursor:pointer }
-.btab.on{ background:var(--ink); color:#fff; border-color:var(--ink) }
+.btab.on{ background:var(--ink); color:var(--bg); border-color:var(--ink) }
 .badge-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:12px }
 .badge{ position:relative; background:var(--surface); border:.5px solid var(--line); border-radius:16px; padding:16px 10px 14px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; text-align:center; font:inherit; transition:transform 90ms var(--eof) }
 .badge:active{ transform:scale(.96) }
@@ -147,7 +147,7 @@ input:focus{ outline:none; border-color:var(--heat-a); }
 .badge.earned.r-lendario .bicon{ border:none; background:conic-gradient(from 180deg,var(--heat-c),var(--heat-a),var(--heat-b),var(--heat-c)) }
 .btitle{ font-size:12px; line-height:1.2; color:var(--ink) }
 .badge.locked .btitle{ color:var(--muted) }
-.bprog{ width:100%; height:4px; background:rgba(42,39,36,.1); border-radius:3px; overflow:hidden }
+.bprog{ width:100%; height:4px; background:var(--line); border-radius:3px; overflow:hidden }
 .bbar{ height:100%; background:var(--heat-a) }
 .bpct{ font-size:10px; color:var(--muted) }
 .bcheck{ position:absolute; top:8px; right:8px; width:18px; height:18px; border-radius:50%; background:#1D9E75; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center }
@@ -221,7 +221,7 @@ input:focus{ outline:none; border-color:var(--heat-a); }
 .kfilters{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:14px 0; margin:0 0 18px; border-bottom:.5px solid var(--line) }
 .ksearch{ flex:1; min-width:150px; padding:8px 12px; font-size:13px; border:.5px solid var(--line); border-radius:10px }
 .kanban{ display:flex; gap:14px; overflow-x:auto; padding-bottom:10px; margin-top:4px }
-.kcol{ flex:0 0 268px; background:rgba(42,39,36,.03); border:.5px solid var(--line); border-radius:14px; padding:12px; min-height:140px }
+.kcol{ flex:0 0 268px; background:var(--tint); border:.5px solid var(--line); border-radius:14px; padding:12px; min-height:140px }
 .kcard{ position:relative; display:block; width:100%; text-align:left; background:var(--surface); border:.5px solid var(--line); border-radius:11px; padding:11px 12px; margin-bottom:8px; cursor:pointer; font:inherit; transition:transform 90ms var(--eof) }
 .kcard:active{ transform:scale(.98) }
 .kcard.blk{ border-color:rgba(218,32,55,.45); background:rgba(218,32,55,.04) }
@@ -528,9 +528,9 @@ a.km-src{ color:var(--heat-b) }
 .emb-del:hover{ opacity:1; color:var(--heat-b) }
 
 /* logo da marca (adaptável a tema) */
-:root, html[data-theme="cream"], html[data-theme="light"]{ --logo-accent:#BE6900 }
-html[data-theme="dark"]{ --logo-accent:#E5A33A }
-.side-logo{ background:none; box-shadow:none; border-radius:0; width:auto; height:34px }
+:root, html[data-theme="cream"], html[data-theme="light"]{ --logo-accent:#E64C28 }
+html[data-theme="dark"]{ --logo-accent:#F2A65A }
+.side-logo{ background:none; box-shadow:none; border-radius:0; width:auto; height:40px }
 .lg-logo{ display:flex; justify-content:center; margin-bottom:20px }
 
 /* wordmark ZenFlow (serifa Newsreader, estilo editorial) */
@@ -546,7 +546,7 @@ html[data-theme="dark"]{ --logo-accent:#E5A33A }
 .areatab.on{ color:var(--ink); font-weight:500; border-bottom-color:var(--ink) }
 .areatab-n{ font-size:11px; font-weight:600; color:#fff; background:var(--heat-a); border-radius:999px; min-width:18px; height:18px; padding:0 5px; display:inline-flex; align-items:center; justify-content:center }
 /* toggle quadro/lista */
-.viewtoggle{ display:flex; gap:2px; background:rgba(42,39,36,.05); border:.5px solid var(--line); border-radius:10px; padding:2px }
+.viewtoggle{ display:flex; gap:2px; background:var(--tint); border:.5px solid var(--line); border-radius:10px; padding:2px }
 .vt{ display:flex; align-items:center; gap:6px; font:inherit; font-size:12.5px; color:var(--muted); background:none; border:none; border-radius:8px; padding:6px 11px; cursor:pointer }
 .vt.on{ background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(42,39,36,.08) }
 /* chip de categoria no card */

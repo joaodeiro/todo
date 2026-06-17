@@ -27,7 +27,7 @@ export function Sidebar() {
   return (
     <aside className="side">
       <Link href="/dashboard" className="side-brand">
-        <span className="side-logo"><Logo size={30} /></span><span className="side-brandtxt wordmark">ZenFlow</span>
+        <span className="side-logo"><Logo size={40} /></span><span className="side-brandtxt wordmark">ZenFlow</span>
       </Link>
       <nav className="side-nav">
         <Link href="/dashboard/hoje" className={`side-i ${hojeOn ? 'on' : ''}`}><ISun /><span>Hoje</span></Link>

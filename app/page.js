@@ -62,7 +62,7 @@ export default function Home() {
   return (
     <main className="wrap">
       <div className="card">
-        <div className="lg-brand"><Logo size={40} /><span className="wordmark lg-wm">ZenFlow</span></div>
+        <div className="lg-brand"><Logo size={48} /><span className="wordmark lg-wm">ZenFlow</span></div>
         {view === 'returning' && last ? (
           <div className="lg-ret">
             <div className="lg-ava">{(last.name || '?').trim().charAt(0).toUpperCase()}</div>
