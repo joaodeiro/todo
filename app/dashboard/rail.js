@@ -12,6 +12,7 @@ function IHome() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="
 function ISun() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg> }
 function IBoard() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="18" rx="1.5" /><rect x="14" y="3" width="7" height="11" rx="1.5" /></svg> }
 function IAward() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.5 13.5 17 22l-5-3-5 3 1.5-8.5" /></svg> }
+function ICal() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2" /><path d="M3 9.5h18M8 2.5v4M16 2.5v4" /></svg> }
 function IUser() { return <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg> }
 function IOut() { return <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg> }
 function ITheme() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8a2.8 2.8 0 0 0 4 4 4 4 0 1 1-4-4" /><path d="M12 2v1M12 21v1M4.2 4.2l.8.8M19 19l.8.8M2 12h1M21 12h1M4.2 19.8l.8-.8M19 5l.8-.8" /></svg> }
@@ -19,8 +20,9 @@ function ITheme() { return <svg viewBox="0 0 24 24" width="18" height="18" fill=
 export function Sidebar() {
   const path = usePathname() || '/dashboard'
   const hojeOn = path.startsWith('/dashboard/hoje')
-  const vidaOn = path === '/dashboard' || (/^\/dashboard\/[^/]+$/.test(path) && !/^\/dashboard\/(hoje|trabalho|conquistas|conta)/.test(path))
+  const vidaOn = path === '/dashboard' || (/^\/dashboard\/[^/]+$/.test(path) && !/^\/dashboard\/(hoje|trabalho|calendario|conquistas|conta)/.test(path))
   const trabOn = path.startsWith('/dashboard/trabalho')
+  const calOn = path.startsWith('/dashboard/calendario')
   const conqOn = path.startsWith('/dashboard/conquistas')
   return (
     <aside className="side">
@@ -31,9 +33,29 @@ export function Sidebar() {
         <Link href="/dashboard/hoje" className={`side-i ${hojeOn ? 'on' : ''}`}><ISun /><span>Hoje</span></Link>
         <Link href="/dashboard" className={`side-i ${vidaOn ? 'on' : ''}`}><IHome /><span>Vida</span></Link>
         <Link href="/dashboard/trabalho" className={`side-i ${trabOn ? 'on' : ''}`}><IBoard /><span>Trabalho</span></Link>
+        <Link href="/dashboard/calendario" className={`side-i ${calOn ? 'on' : ''}`}><ICal /><span>Calendário</span></Link>
         <Link href="/dashboard/conquistas" className={`side-i ${conqOn ? 'on' : ''}`}><IAward /><span>Conquistas</span></Link>
       </nav>
     </aside>
+  )
+}
+
+// barra de navegação inferior (mobile). espelha a sidebar com cara de app.
+export function BottomNav() {
+  const path = usePathname() || '/dashboard'
+  const hojeOn = path.startsWith('/dashboard/hoje')
+  const vidaOn = path === '/dashboard' || (/^\/dashboard\/[^/]+$/.test(path) && !/^\/dashboard\/(hoje|trabalho|calendario|conquistas|conta)/.test(path))
+  const trabOn = path.startsWith('/dashboard/trabalho')
+  const calOn = path.startsWith('/dashboard/calendario')
+  const conqOn = path.startsWith('/dashboard/conquistas')
+  return (
+    <nav className="botnav">
+      <Link href="/dashboard/hoje" className={`bn-i ${hojeOn ? 'on' : ''}`}><ISun /><span>Hoje</span></Link>
+      <Link href="/dashboard" className={`bn-i ${vidaOn ? 'on' : ''}`}><IHome /><span>Vida</span></Link>
+      <Link href="/dashboard/trabalho" className={`bn-i ${trabOn ? 'on' : ''}`}><IBoard /><span>Trabalho</span></Link>
+      <Link href="/dashboard/calendario" className={`bn-i ${calOn ? 'on' : ''}`}><ICal /><span>Agenda</span></Link>
+      <Link href="/dashboard/conquistas" className={`bn-i ${conqOn ? 'on' : ''}`}><IAward /><span>Conquistas</span></Link>
+    </nav>
   )
 }
 

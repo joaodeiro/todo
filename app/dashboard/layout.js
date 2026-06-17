@@ -1,6 +1,6 @@
 'use client'
 import { RevealProvider } from './reveal'
-import { Sidebar, TopBar } from './rail'
+import { Sidebar, TopBar, BottomNav } from './rail'
 
 export default function DashboardLayout({ children }) {
   return (
@@ -11,6 +11,7 @@ export default function DashboardLayout({ children }) {
           <TopBar />
           <div className="shell-content">{children}</div>
         </div>
+        <BottomNav />
       </div>
     </RevealProvider>
   )
