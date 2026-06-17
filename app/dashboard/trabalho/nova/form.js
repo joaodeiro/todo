@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createCardFull } from '@/app/actions'
+import { toastSave } from '@/app/toast'
 
 const STATUSES = [['backlog', 'Backlog'], ['aguardando', 'Aguardando'], ['fazendo', 'Fazendo'], ['concluido', 'Concluído']]
 
@@ -20,7 +21,7 @@ export function NovaDemanda({ areas }) {
   async function create() {
     if (!title.trim() || saving) return
     setSaving(true)
-    const card = await createCardFull({ title, areaCode: areaSel, contexto, origem, status })
+    const card = await toastSave(createCardFull({ title, areaCode: areaSel, contexto, origem, status }), { loading: 'Criando…', success: 'Demanda criada' })
     if (card) router.replace(`/dashboard/trabalho/${encodeURIComponent(card.legacy_id || card.id)}`)
     else setSaving(false)
   }

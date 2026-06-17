@@ -789,7 +789,7 @@ function CreateModal({ areas, onClose, onCreated }) {
   async function create() {
     if (!title.trim()) return
     setSaving(true)
-    const card = await createCardFull({ title, areaCode: areaSel, contexto, origem })
+    const card = await toastSave(createCardFull({ title, areaCode: areaSel, contexto, origem }), { loading: 'Criando…', success: 'Demanda criada' })
     setSaving(false)
     if (card) onCreated(card)
   }
