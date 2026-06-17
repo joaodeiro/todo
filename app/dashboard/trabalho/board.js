@@ -319,6 +319,8 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
   const [copied, setCopied] = useState(false)
   useEffect(() => { const el = titleRef.current; if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' } }, [title])
   function copyLink() { try { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch (e) {} }
+  // salva sozinho (sem botão): chamado no blur dos campos e na troca de área
+  function commit(over) { onSave(card.id, { title, areaCode: areaSel, contexto, ...(over || {}) }) }
 
   async function loadAtts() {
     const { data } = await supabase.from('attachment').select('*').eq('item_id', card.id).order('created_at')
@@ -413,12 +415,12 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
           {confirmDel ? (
             <><span className="km-confirm">Excluir mesmo?</span><button className="link" onClick={() => setConfirmDel(false)}>não</button><button className="km-del" onClick={() => onDelete(card.id)}>sim, excluir</button></>
           ) : (
-            <><button className="km-del" onClick={() => setConfirmDel(true)}>excluir</button><button className="km-save" onClick={() => onSave(card.id, { title, areaCode: areaSel, contexto })}>salvar</button></>
+            <button className="km-del" onClick={() => setConfirmDel(true)}>excluir</button>
           )}
         </div>
       </div>
 
-      <textarea ref={titleRef} className="dmd-title" rows={1} value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da demanda" />
+      <textarea ref={titleRef} className="dmd-title" rows={1} value={title} onChange={e => setTitle(e.target.value)} onBlur={() => commit()} placeholder="Título da demanda" />
       <div className="dmd-metarow">
         <span>{_areaText}</span><span className="dmd-sep">·</span>
         <span>{card.origem || 'sem origem'}</span><span className="dmd-sep">·</span>
@@ -437,7 +439,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
           {tab === 'geral' && (
             <>
               <div className="dmd-lbl">Resumo — o que precisa ser feito</div>
-              <textarea className="dmd-resumo" rows={7} value={contexto} onChange={e => setContexto(e.target.value)} placeholder="Descreva a demanda…" />
+              <textarea className="dmd-resumo" rows={7} value={contexto} onChange={e => setContexto(e.target.value)} onBlur={() => commit()} placeholder="Descreva a demanda…" />
               <div className="dmd-lbl">De onde veio</div>
               {origemUrl
                 ? <a className="km-src" href={origemUrl} target="_blank" rel="noreferrer">{card.origem} ↗</a>
@@ -461,7 +463,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
               </select>
             </div>
             <div className="dmd-prop"><span className="dmd-pk">Área</span>
-              <select className="sel sel-sm" value={areaSel} onChange={e => setAreaSel(e.target.value)}>
+              <select className="sel sel-sm" value={areaSel} onChange={e => { const v = e.target.value; setAreaSel(v); commit({ areaCode: v }) }}>
                 <option value="">—</option>
                 {_areaOpts.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
               </select>
