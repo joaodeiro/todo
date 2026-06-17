@@ -80,7 +80,14 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
   const [dragCol, setDragCol] = useState(null)
   const [overInfo, setOverInfo] = useState(null)
 
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
+  // o relógio só pulsa quando há cronômetro rodando e nunca durante um arrasto:
+  // re-render no meio do drag nativo derruba o dragend e trava o quadro.
+  const anyRunning = tasks.some(t => t.timer_started_at)
+  useEffect(() => {
+    if (!anyRunning || dragId) return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [anyRunning, dragId])
 
   const isRit = c => c.primitive === 'ritual'
   const ritDoneOf = c => isRitualDone(done, c.id, cadenceOf(c), (c.config || {}).anchor)
@@ -285,7 +292,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
                 <HojeCard key={c.id} c={c} now={now} colKey={col.key} dom={domMap[c.domain_id]}
                   isRit={isRit(c)} ritDone={ritDoneOf(c)} isSkip={ritSkipOf(c)} cad={cadenceOf(c)} sched={scheduleLabel(c)}
                   dragId={dragId} overInfo={overInfo} confirmDelId={confirmDelId}
-                  onDragStart={() => setDragId(c.id)} onDragEndAll={() => { setDragId(null); setOverInfo(null); setDragCol(null) }}
+                  onDragStart={() => { setDragId(c.id); setOverInfo(null); setDragCol(null) }} onDragEndAll={() => { setDragId(null); setOverInfo(null); setDragCol(null) }}
                   onOver={before => setOverInfo(o => (o && o.id === c.id && o.before === before) ? o : { id: c.id, before })}
                   onDropCard={before => performDrop(dragId, col.key, c.id, before)}
                   onOpen={() => router.push(`/dashboard/item/${c.id}`)} onPlay={() => play(c)} onPause={() => pause(c)}
