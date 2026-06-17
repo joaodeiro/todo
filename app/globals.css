@@ -552,6 +552,13 @@ html[data-theme="dark"]{ --logo-accent:#E5A33A }
 /* chip de categoria no card */
 .lc-cat{ font-size:10.5px; color:var(--muted); background:rgba(140,134,124,.12); border-radius:5px; padding:2px 7px; white-space:nowrap }
 .hjk-dom{ font-size:10.5px; font-weight:600; color:var(--ink); background:var(--bg); border:.5px solid var(--line); border-radius:5px; padding:2px 7px; white-space:nowrap }
+.hjk-nudge{ position:absolute; right:6px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:3px; opacity:0; transition:opacity .12s; z-index:3 }
+.kcard:hover .hjk-nudge{ opacity:1 }
+.hjk-nudge button{ width:23px; height:21px; display:flex; align-items:center; justify-content:center; padding:0; border:.5px solid var(--line); background:var(--surface); border-radius:6px; color:var(--ink); cursor:pointer; box-shadow:0 1px 4px rgba(42,39,36,.14); transition:border-color .12s, transform .08s }
+.hjk-nudge button:hover:not(:disabled){ border-color:rgba(42,39,36,.32); background:var(--bg) }
+.hjk-nudge button:active:not(:disabled){ transform:scale(.88) }
+.hjk-nudge button:disabled{ opacity:.28; cursor:default; box-shadow:none }
+.hjk .kc-title{ padding-right:30px }
 .lc-due{ font-size:10.5px; font-weight:600; border-radius:5px; padding:2px 7px; white-space:nowrap }
 .lc-due-late{ color:#fff; background:var(--heat-b) }
 .lc-due-today{ color:var(--heat-a); background:rgba(230,76,40,.12) }

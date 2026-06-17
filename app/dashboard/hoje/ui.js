@@ -151,6 +151,24 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
     if (statusChanged) { moveCard(id, status); notify() }
     reorderCards(newList.map(c => c.id))
   }
+  // reordenar por botão (sobe/desce dentro da coluna). independe do drag nativo.
+  function nudge(card, dir) {
+    const status = effStatus(card)
+    const col = boardCards.filter(c => effStatus(c) === status)
+    const free = col.filter(c => !c.blocked).sort(bySort)
+    const blk = col.filter(c => c.blocked).sort(bySort)
+    const group = card.blocked ? blk : free
+    const i = group.findIndex(c => c.id === card.id)
+    const j = i + dir
+    if (i < 0 || j < 0 || j >= group.length) return
+    const ng = group.slice()
+    const tmp = ng[i]; ng[i] = ng[j]; ng[j] = tmp
+    const ordered = card.blocked ? [...free, ...ng] : [...ng, ...blk]
+    const sortById = {}; ordered.forEach((c, k) => { sortById[c.id] = k + 1 })
+    setTasks(s => s.map(c => sortById[c.id] != null ? { ...c, sort: sortById[c.id] } : c))
+    setRituals(s => s.map(c => sortById[c.id] != null ? { ...c, sort: sortById[c.id] } : c))
+    reorderCards(ordered.map(c => c.id))
+  }
   async function remove(id) {
     setTasks(s => s.filter(c => c.id !== id)); setRituals(s => s.filter(c => c.id !== id))
     await deleteItem(id)
@@ -284,13 +302,14 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
         boardEmpty ? (
           <p className="empty">Nada pra hoje. 🌤️ Crie rotinas e tarefas nas áreas da <Link className="hj-link" href="/dashboard">Vida</Link> que elas aparecem aqui.</p>
         ) : (
-          <div className="kanban">
+          <div className="kanban hjk">
             {LIFE_COLS.map(col => {
               const list = boardCards.filter(c => effStatus(c) === col.key).sort(bySort)
               const free = list.filter(c => !c.blocked), blk = list.filter(c => c.blocked)
-              const render = c => (
+              const render = (c, i, arr) => (
                 <HojeCard key={c.id} c={c} now={now} colKey={col.key} dom={domMap[c.domain_id]}
                   isRit={isRit(c)} ritDone={ritDoneOf(c)} isSkip={ritSkipOf(c)} cad={cadenceOf(c)} sched={scheduleLabel(c)}
+                  canUp={i > 0} canDown={i < arr.length - 1} onUp={() => nudge(c, -1)} onDown={() => nudge(c, 1)}
                   dragId={dragId} overInfo={overInfo} confirmDelId={confirmDelId}
                   onDragStart={() => { setDragId(c.id); setOverInfo(null); setDragCol(null) }} onDragEndAll={() => { setDragId(null); setOverInfo(null); setDragCol(null) }}
                   onOver={before => setOverInfo(o => (o && o.id === c.id && o.before === before) ? o : { id: c.id, before })}
@@ -321,7 +340,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
   )
 }
 
-function HojeCard({ c, now, colKey, dom, isRit, ritDone, isSkip, cad, sched, dragId, overInfo, confirmDelId, onDragStart, onDragEndAll, onOver, onDropCard, onOpen, onPlay, onPause, onCheck, onSkip, onFazerHoje, onAskDel, onCancelDel, onConfirmDel }) {
+function HojeCard({ c, now, colKey, dom, isRit, ritDone, isSkip, cad, sched, canUp, canDown, onUp, onDown, dragId, overInfo, confirmDelId, onDragStart, onDragEndAll, onOver, onDropCard, onOpen, onPlay, onPause, onCheck, onSkip, onFazerHoje, onAskDel, onCancelDel, onConfirmDel }) {
   const ref = useRef(null)
   const running = !!c.timer_started_at
   const cm = catMeta(catOf(c))
@@ -336,6 +355,14 @@ function HojeCard({ c, now, colKey, dom, isRit, ritDone, isSkip, cad, sched, dra
       onDragOver={e => { e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); onOver(e.clientY < r.top + r.height / 2) }}
       onDrop={e => { e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); onDropCard(e.clientY < r.top + r.height / 2) }}
       onClick={onOpen}>
+      <div className="hjk-nudge" draggable={false} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+        <button type="button" draggable={false} disabled={!canUp} onClick={e => { e.stopPropagation(); onUp() }} aria-label="mover pra cima" title="subir">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
+        </button>
+        <button type="button" draggable={false} disabled={!canDown} onClick={e => { e.stopPropagation(); onDown() }} aria-label="mover pra baixo" title="descer">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+      </div>
       <div className="kc-top">
         {dom && <span className="hjk-dom">{dom.name}</span>}
         <span className="lc-cat" title={cm.label}>{cm.icon} {isRit ? cadenceLabel(cad) : cm.label}</span>
