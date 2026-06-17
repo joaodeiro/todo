@@ -551,6 +551,7 @@ html[data-theme="dark"]{ --logo-accent:#E5A33A }
 .vt.on{ background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(42,39,36,.08) }
 /* chip de categoria no card */
 .lc-cat{ font-size:10.5px; color:var(--muted); background:rgba(140,134,124,.12); border-radius:5px; padding:2px 7px; white-space:nowrap }
+.hjk-dom{ font-size:10.5px; font-weight:600; color:var(--ink); background:var(--bg); border:.5px solid var(--line); border-radius:5px; padding:2px 7px; white-space:nowrap }
 .lc-due{ font-size:10.5px; font-weight:600; border-radius:5px; padding:2px 7px; white-space:nowrap }
 .lc-due-late{ color:#fff; background:var(--heat-b) }
 .lc-due-today{ color:var(--heat-a); background:rgba(230,76,40,.12) }
