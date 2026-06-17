@@ -6,11 +6,14 @@ import {
   moveCard, reorderCards, deleteItem, startTimer, stopTimer
 } from '@/app/actions'
 import { CreateItemModal } from '@/app/dashboard/createitem'
+import { toastSave } from '@/app/toast'
 import {
   LIFE_CATS, LIFE_COLS, LIFE_ORDER, catOf, cadenceOf,
   cadenceLabel, periodKey, periodLabel, isRitualDone, doneSet, dueLabel,
   skipSet, isRitualSkipped, scheduleLabel, markedToday
 } from '@/app/life'
+
+const lifeStatusLabel = k => (LIFE_COLS.find(x => x.key === k) || {}).label || k
 
 const COLORS = ['#E64C28', '#DA2037', '#F9C972', '#1D9E75', '#7F77DD']
 function tinyBurst(host) {
@@ -83,10 +86,10 @@ export function AreaWorkspace({ domain, areas, initialTasks, initialRituals, tim
       const idk = `${c.id}|${key}`
       const wasDone = done.has(idk)
       if (status === 'concluido') {
-        if (!wasDone) { setDone(s => { const n = new Set(s); n.add(idk); return n }); setSkipped(s => { const n = new Set(s); n.delete(idk); return n }); toggleRitual(c.id, domain.id, key, true) }
+        if (!wasDone) { setDone(s => { const n = new Set(s); n.add(idk); return n }); setSkipped(s => { const n = new Set(s); n.delete(idk); return n }); toastSave(toggleRitual(c.id, domain.id, key, true), { success: `Feito ${periodLabel(cad)} ✓` }) }
       } else {
         if (wasDone) { setDone(s => { const n = new Set(s); n.delete(idk); return n }); toggleRitual(c.id, domain.id, key, false) }
-        setRituals(s => s.map(x => x.id === c.id ? { ...x, status } : x)); moveCard(c.id, status)
+        setRituals(s => s.map(x => x.id === c.id ? { ...x, status } : x)); toastSave(moveCard(c.id, status), { success: `Movido para ${lifeStatusLabel(status)}` })
       }
       return
     }
@@ -96,7 +99,7 @@ export function AreaWorkspace({ domain, areas, initialTasks, initialRituals, tim
       if (x.timer_started_at && status !== 'fazendo') { const el = Math.max(0, Math.floor((Date.now() - Date.parse(x.timer_started_at)) / 1000)); n = { ...n, secs: (x.secs || 0) + (el >= 60 ? el : 0), timer_started_at: null } }
       return n
     }))
-    moveCard(c.id, status)
+    toastSave(moveCard(c.id, status), { success: `Movido para ${lifeStatusLabel(status)}` })
   }
   function moveDir(c, dir) {
     const i = LIFE_ORDER.indexOf(effStatus(c))
@@ -128,12 +131,12 @@ export function AreaWorkspace({ domain, areas, initialTasks, initialRituals, tim
       }
       return next
     }))
-    if (statusChanged) moveCard(id, status)
+    if (statusChanged) toastSave(moveCard(id, status), { success: `Movido para ${lifeStatusLabel(status)}` })
     reorderCards(newList.map(c => c.id))
   }
   async function remove(id) {
     setTasks(s => s.filter(c => c.id !== id)); setRituals(s => s.filter(c => c.id !== id))
-    await deleteItem(id)
+    await toastSave(deleteItem(id), { loading: 'Excluindo…', success: 'Demanda excluída' })
   }
   function play(card) {
     if (card.timer_started_at) return
@@ -156,7 +159,7 @@ export function AreaWorkspace({ domain, areas, initialTasks, initialRituals, tim
     const isDone = done.has(id)
     setDone(s => { const n = new Set(s); isDone ? n.delete(id) : n.add(id); return n })
     if (!isDone) { setSkipped(s => { const n = new Set(s); n.delete(id); return n }); tinyBurst(host) }
-    toggleRitual(r.id, domain.id, key, !isDone)
+    toastSave(toggleRitual(r.id, domain.id, key, !isDone), { success: isDone ? 'Desmarcado' : `Feito ${periodLabel(cadenceOf(r))} ✓` })
   }
   function doSkip(r, skip) {
     const cad = cadenceOf(r)
@@ -164,14 +167,14 @@ export function AreaWorkspace({ domain, areas, initialTasks, initialRituals, tim
     const id = `${r.id}|${key}`
     setSkipped(s => { const n = new Set(s); skip ? n.add(id) : n.delete(id); return n })
     if (skip) setDone(s => { const n = new Set(s); n.delete(id); return n })
-    skipRitual(r.id, domain.id, key, cad, skip)
+    toastSave(skipRitual(r.id, domain.id, key, cad, skip), { success: skip ? 'Pulada — volta no próximo ciclo' : 'Skip desfeito' })
   }
   function doFazerHoje(c) {
     const todayIso = new Date(new Date().toLocaleDateString('en-CA') + 'T12:00:00Z').toISOString()
     const status = c.status === 'fazendo' ? 'fazendo' : 'aguardando'
     const patch = { due_at: todayIso, status, config: { ...(c.config || {}), fazer_hoje: true } }
     setTasks(s => s.map(x => x.id === c.id ? { ...x, ...patch } : x))
-    fazerHoje(c.id)
+    toastSave(fazerHoje(c.id), { success: 'Jogado pro Hoje 🎯' })
   }
   function onCreated(item) {
     // se criou pra outra Área da Vida, não entra neste quadro
@@ -358,7 +361,7 @@ function LifeRow({ c, now, isRit, ritDone, isSkip, onOpen, onPlay, onPause, onAd
 export function PresenceBoard({ domainId, initialMoments }) {
   const [moments, setMoments] = useState(initialMoments || [])
   const [note, setNote] = useState('')
-  async function submit(e) { e.preventDefault(); if (!note.trim()) return; const t = note; setNote(''); const m = await addMoment(domainId, t); if (m) setMoments(s => [m, ...s]) }
+  async function submit(e) { e.preventDefault(); if (!note.trim()) return; const t = note; setNote(''); const m = await toastSave(addMoment(domainId, t), { success: 'Momento registrado 🤍' }); if (m) setMoments(s => [m, ...s]) }
   return (
     <>
       <form onSubmit={submit} className="addmoment">

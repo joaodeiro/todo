@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createCardFull, moveCard, reorderCards, setBlocked, updateCard, deleteItem, startTimer, stopTimer, addTime, listTimeEntries } from '@/app/actions'
 import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
+import { toast, toastSave } from '@/app/toast'
+
+const STATUS_LABEL = { backlog: 'Backlog', aguardando: 'Aguardando', fazendo: 'Fazendo', concluido: 'Concluído' }
 
 const COLS = [
   { key: 'backlog', label: 'Backlog' },
@@ -95,6 +98,10 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
   const [dragCol, setDragCol] = useState(null)
   const [dragId, setDragId] = useState(null)
   const [overInfo, setOverInfo] = useState(null)
+  const [quickId, setQuickId] = useState(null) // card com ações rápidas abertas (long-press mobile)
+  const lpTimer = useRef(null)   // timer do long-press
+  const lpFired = useRef(false)  // long-press disparou → suprime o clique que navega
+  const lpStart = useRef(null)   // posição inicial do toque (cancela se rolar)
   const areaCode = {}; (areas || []).forEach(a => { areaCode[a.id] = a.code })
   const codeToId = {}; (areas || []).forEach(a => { codeToId[a.code] = a.id })
 
@@ -106,7 +113,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
     const ni = Math.max(0, Math.min(ORDER.length - 1, i + dir))
     if (ni === i) return
     setCards(s => s.map(c => c.id === id ? { ...c, status: ORDER[ni] } : c))
-    moveCard(id, ORDER[ni])
+    toastSave(moveCard(id, ORDER[ni]), { success: `Movido para ${STATUS_LABEL[ORDER[ni]]}` })
   }
   function moveTo(id, status) {
     const card = cards.find(c => c.id === id); if (!card || (card.status || 'backlog') === status) return
@@ -119,7 +126,7 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
       }
       return next
     }))
-    moveCard(id, status)
+    toastSave(moveCard(id, status), { success: `Movido para ${STATUS_LABEL[status]}` })
     try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
   }
   // solta o card numa posição: reordena dentro da coluna (e muda status se cruzou coluna)
@@ -157,15 +164,14 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
     const nb = !card.blocked
     const patch = { blocked: nb, block_reason: nb ? type : null, block_note: nb ? note : null }
     setCards(s => s.map(c => c.id === card.id ? { ...c, ...patch } : c))
-    setBlocked(card.id, nb, type, note)
+    toastSave(setBlocked(card.id, nb, type, note), { success: nb ? 'Demanda bloqueada' : 'Demanda desbloqueada' })
   }
   async function save(id, fields) {
     const waId = fields.areaCode ? codeToId[fields.areaCode] : null
     setCards(s => s.map(c => c.id === id ? { ...c, title: fields.title, notes: fields.contexto || null, work_area_id: waId } : c))
-    setSelId(null)
     await updateCard(id, { title: fields.title, contexto: fields.contexto, areaCode: fields.areaCode })
   }
-  async function remove(id) { setCards(s => s.filter(c => c.id !== id)); setSelId(null); await deleteItem(id) }
+  async function remove(id) { setCards(s => s.filter(c => c.id !== id)); setSelId(null); await toastSave(deleteItem(id), { loading: 'Excluindo…', success: 'Demanda excluída' }) }
   function play(card) {
     if (card.timer_started_at) return
     const runningCard = cards.find(c => c.timer_started_at)
@@ -247,7 +253,10 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); const before = e.clientY < r.top + r.height / 2; setOverInfo(o => (o && o.id === c.id && o.before === before) ? o : { id: c.id, before }) }}
                     onDrop={e => { e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); const before = e.clientY < r.top + r.height / 2; performDrop(e.dataTransfer.getData('text/plain') || dragId, col.key, c.id, before) }}
                     onMouseEnter={() => router.prefetch(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}
-                    onClick={() => router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}>
+                    onTouchStart={e => { lpFired.current = false; const t = e.touches[0]; lpStart.current = { x: t.clientX, y: t.clientY }; clearTimeout(lpTimer.current); lpTimer.current = setTimeout(() => { lpFired.current = true; try { navigator.vibrate && navigator.vibrate(8) } catch (err) {} setQuickId(c.id) }, 480) }}
+                    onTouchMove={e => { const t = e.touches[0]; if (lpStart.current && (Math.abs(t.clientX - lpStart.current.x) > 10 || Math.abs(t.clientY - lpStart.current.y) > 10)) clearTimeout(lpTimer.current) }}
+                    onTouchEnd={() => clearTimeout(lpTimer.current)}
+                    onClick={e => { if (lpFired.current) { e.preventDefault(); e.stopPropagation(); lpFired.current = false; return } router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`) }}>
                     <div className="kc-top">
                       <span className="kcode">{c.legacy_id || (areaCode[c.work_area_id] || '—')}</span>
                       {c.blocked && (
@@ -294,6 +303,34 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
         })}
       </div>
       {sel && <CardModal card={sel} now={now} areas={areas} areaCode={areaCode} onClose={() => setSelId(null)} onMove={move} onSetStatus={moveTo} onBlock={toggleBlock} onSave={save} onDelete={remove} onPlay={play} onPause={pause} onAddTime={addManual} />}
+      {quickId && (() => {
+        const c = cards.find(x => x.id === quickId); if (!c) return null
+        const running = !!c.timer_started_at
+        return (
+          <div className="qa-overlay" onClick={() => setQuickId(null)}>
+            <div className="qa-sheet" onClick={e => e.stopPropagation()}>
+              <div className="qa-grip" />
+              <div className="qa-head">
+                <span className="kcode">{c.legacy_id || (areaCode[c.work_area_id] || '—')}</span>
+                <span className="qa-title">{c.title}</span>
+              </div>
+              <div className="qa-sec-lbl">Mudar status</div>
+              <div className="qa-status">
+                {COLS.map(col => (
+                  <button key={col.key} className={`qa-st ${(c.status || 'backlog') === col.key ? 'on' : ''}`}
+                    onClick={() => { moveTo(c.id, col.key); setQuickId(null) }}>{col.label}</button>
+                ))}
+              </div>
+              <div className="qa-actions">
+                <button className="qa-act" onClick={() => { running ? pause(c) : play(c); setQuickId(null) }}>{running ? '⏸ Pausar cronômetro' : '▶ Iniciar cronômetro'}</button>
+                {c.blocked && <button className="qa-act" onClick={() => { toggleBlock(c, null, null); setQuickId(null) }}>🔓 Desbloquear</button>}
+                <button className="qa-act" onClick={() => { setQuickId(null); router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`) }}>Abrir demanda →</button>
+                <button className="qa-act danger" onClick={() => { setQuickId(null); setConfirmDelId(c.id) }}>Excluir</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
       {creating && <CreateModal areas={areas} onClose={() => setCreating(false)} onCreated={onCreated} />}
       {switchTo && <SwitchTimerModal from={switchTo.from} to={switchTo.to} now={now} onKeep={() => setSwitchTo(null)} onSwitch={() => { doPlay(switchTo.to); setSwitchTo(null) }} />}
     </>
@@ -319,8 +356,21 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
   const [copied, setCopied] = useState(false)
   useEffect(() => { const el = titleRef.current; if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' } }, [title])
   function copyLink() { try { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch (e) {} }
-  // salva sozinho (sem botão): chamado no blur dos campos e na troca de área
-  function commit(over) { onSave(card.id, { title, areaCode: areaSel, contexto, ...(over || {}) }) }
+
+  // autosave: sem botão "salvar" — persiste título/área/contexto ~700ms depois de parar de editar
+  const [saving, setSaving] = useState(false)
+  const [savedOnce, setSavedOnce] = useState(false)
+  const skipFirstSave = useRef(true)
+  useEffect(() => {
+    if (skipFirstSave.current) { skipFirstSave.current = false; return }
+    setSaving(true)
+    const t = setTimeout(() => {
+      toastSave(onSave(card.id, { title, areaCode: areaSel, contexto }), { success: 'Demanda atualizada com sucesso' })
+        .then(() => { setSaving(false); setSavedOnce(true) })
+        .catch(() => setSaving(false))
+    }, 700)
+    return () => clearTimeout(t)
+  }, [title, contexto, areaSel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadAtts() {
     const { data } = await supabase.from('attachment').select('*').eq('item_id', card.id).order('created_at')
@@ -346,7 +396,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
   async function addEmb(rawTitle) {
     const title = (rawTitle || '').trim(); if (!title) return
     const maxSort = (embs || []).reduce((m, e) => Math.max(m, e.sort || 0), 0)
-    const { data } = await supabase.from('embarque').insert({ item_id: card.id, title, sort: maxSort + 1 }).select().single()
+    const { data } = await toastSave(supabase.from('embarque').insert({ item_id: card.id, title, sort: maxSort + 1 }).select().single(), { success: 'Embarque adicionado' })
     if (data) setEmbs(s => [...(s || []), data])
   }
   async function toggleEmb(e) {
@@ -361,7 +411,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
   }
   async function delEmb(e) {
     setEmbs(s => (s || []).filter(x => x.id !== e.id))
-    await supabase.from('embarque').delete().eq('id', e.id)
+    await toastSave(supabase.from('embarque').delete().eq('id', e.id), { loading: 'Removendo…', success: 'Embarque removido' })
   }
   async function reorderEmbs(orderedIds) {
     setEmbs(s => { const by = {}; (s || []).forEach(x => { by[x.id] = x }); return orderedIds.map((id, i) => ({ ...by[id], sort: i + 1 })) })
@@ -370,29 +420,34 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
 
   async function addFiles(fileList) {
     const files = Array.from(fileList || [])
-    for (const file of files) {
-      const ext = (file.name.split('.').pop() || '').toLowerCase()
-      const mime = file.type || ''
-      let kind = 'text'
-      if (mime.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'].includes(ext)) kind = 'image'
-      else if (ext === 'md' || ext === 'markdown') kind = 'md'
-      const path = `${card.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-      const { error } = await supabase.storage.from('attachments').upload(path, file, { contentType: mime || undefined })
-      if (error) { console.error('upload', error); continue }
-      await supabase.from('attachment').insert({ item_id: card.id, kind, filename: file.name, mime, size: file.size, path })
-    }
+    if (!files.length) return
+    await toastSave((async () => {
+      for (const file of files) {
+        const ext = (file.name.split('.').pop() || '').toLowerCase()
+        const mime = file.type || ''
+        let kind = 'text'
+        if (mime.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'].includes(ext)) kind = 'image'
+        else if (ext === 'md' || ext === 'markdown') kind = 'md'
+        const path = `${card.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error } = await supabase.storage.from('attachments').upload(path, file, { contentType: mime || undefined })
+        if (error) { console.error('upload', error); throw error }
+        await supabase.from('attachment').insert({ item_id: card.id, kind, filename: file.name, mime, size: file.size, path })
+      }
+    })(), { loading: 'Enviando…', success: files.length > 1 ? `${files.length} anexos enviados` : 'Anexo enviado', error: 'Falha ao enviar anexo' })
     loadAtts()
   }
   async function delAtt(a) {
     setAtts(s => (s || []).filter(x => x.id !== a.id))
-    if (a.kind !== 'link') await supabase.storage.from('attachments').remove([a.path])
-    await supabase.from('attachment').delete().eq('id', a.id)
+    await toastSave((async () => {
+      if (a.kind !== 'link') await supabase.storage.from('attachments').remove([a.path])
+      await supabase.from('attachment').delete().eq('id', a.id)
+    })(), { loading: 'Removendo…', success: a.kind === 'link' ? 'Link removido' : 'Anexo removido' })
   }
   async function addLink(rawUrl, label) {
     let url = (rawUrl || '').trim()
     if (!url || /^javascript:/i.test(url)) return
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url
-    await supabase.from('attachment').insert({ item_id: card.id, kind: 'link', filename: (label || '').trim() || url, mime: 'link', size: null, path: url })
+    await toastSave(supabase.from('attachment').insert({ item_id: card.id, kind: 'link', filename: (label || '').trim() || url, mime: 'link', size: null, path: url }), { success: 'Link adicionado' })
     loadAtts()
   }
   async function openAtt(a) {
@@ -411,6 +466,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
           {card.blocked && <span className="dmd-pill-blk"><Ban /> bloqueado</span>}
         </div>
         <div className="dmd-bar-actions">
+          <span className="dmd-saved">{saving ? 'salvando…' : savedOnce ? '✓ salvo' : ''}</span>
           <button className="dmd-ghost" onClick={copyLink}>{copied ? '✓ copiado' : 'copiar link'}</button>
           {confirmDel ? (
             <><span className="km-confirm">Excluir mesmo?</span><button className="link" onClick={() => setConfirmDel(false)}>não</button><button className="km-del" onClick={() => onDelete(card.id)}>sim, excluir</button></>
@@ -420,7 +476,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
         </div>
       </div>
 
-      <textarea ref={titleRef} className="dmd-title" rows={1} value={title} onChange={e => setTitle(e.target.value)} onBlur={() => commit()} placeholder="Título da demanda" />
+      <textarea ref={titleRef} className="dmd-title" rows={1} value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da demanda" />
       <div className="dmd-metarow">
         <span>{_areaText}</span><span className="dmd-sep">·</span>
         <span>{card.origem || 'sem origem'}</span><span className="dmd-sep">·</span>
@@ -439,7 +495,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
           {tab === 'geral' && (
             <>
               <div className="dmd-lbl">Resumo — o que precisa ser feito</div>
-              <textarea className="dmd-resumo" rows={7} value={contexto} onChange={e => setContexto(e.target.value)} onBlur={() => commit()} placeholder="Descreva a demanda…" />
+              <textarea className="dmd-resumo" rows={7} value={contexto} onChange={e => setContexto(e.target.value)} placeholder="Descreva a demanda…" />
               <div className="dmd-lbl">De onde veio</div>
               {origemUrl
                 ? <a className="km-src" href={origemUrl} target="_blank" rel="noreferrer">{card.origem} ↗</a>
@@ -463,7 +519,7 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
               </select>
             </div>
             <div className="dmd-prop"><span className="dmd-pk">Área</span>
-              <select className="sel sel-sm" value={areaSel} onChange={e => { const v = e.target.value; setAreaSel(v); commit({ areaCode: v }) }}>
+              <select className="sel sel-sm" value={areaSel} onChange={e => setAreaSel(e.target.value)}>
                 <option value="">—</option>
                 {_areaOpts.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
               </select>
@@ -733,7 +789,7 @@ function CreateModal({ areas, onClose, onCreated }) {
   async function create() {
     if (!title.trim()) return
     setSaving(true)
-    const card = await createCardFull({ title, areaCode: areaSel, contexto, origem })
+    const card = await toastSave(createCardFull({ title, areaCode: areaSel, contexto, origem }), { loading: 'Criando…', success: 'Demanda criada' })
     setSaving(false)
     if (card) onCreated(card)
   }

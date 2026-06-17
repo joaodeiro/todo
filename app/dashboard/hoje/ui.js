@@ -4,11 +4,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toggleRitual, skipRitual, moveCard, reorderCards, deleteItem, startTimer, stopTimer, fazerHoje } from '@/app/actions'
 import { CreateItemModal } from '@/app/dashboard/createitem'
+import { toastSave } from '@/app/toast'
 import {
   LIFE_CATS, LIFE_COLS, catOf,
   cadenceOf, cadenceLabel, periodKey, periodLabel, isRitualDone, doneSet, dueLabel,
   skipSet, isRitualSkipped, isActiveNow, isDueToday, scheduleLabel, markedToday
 } from '@/app/life'
+
+const lifeStatusLabel = k => (LIFE_COLS.find(x => x.key === k) || {}).label || k
 
 const COLORS = ['#E64C28', '#DA2037', '#F9C972', '#1D9E75', '#7F77DD']
 function burst(host) {
@@ -108,10 +111,10 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
       const idk = `${c.id}|${key}`
       const wasDone = done.has(idk)
       if (status === 'concluido') {
-        if (!wasDone) { setDone(s => { const n = new Set(s); n.add(idk); return n }); setSkipped(s => { const n = new Set(s); n.delete(idk); return n }); toggleRitual(c.id, c.domain_id, key, true) }
+        if (!wasDone) { setDone(s => { const n = new Set(s); n.add(idk); return n }); setSkipped(s => { const n = new Set(s); n.delete(idk); return n }); toastSave(toggleRitual(c.id, c.domain_id, key, true), { success: `Feito ${periodLabel(cad)} ✓` }) }
       } else {
         if (wasDone) { setDone(s => { const n = new Set(s); n.delete(idk); return n }); toggleRitual(c.id, c.domain_id, key, false) }
-        setRituals(s => s.map(x => x.id === c.id ? { ...x, status } : x)); moveCard(c.id, status)
+        setRituals(s => s.map(x => x.id === c.id ? { ...x, status } : x)); toastSave(moveCard(c.id, status), { success: `Movido para ${lifeStatusLabel(status)}` })
       }
       return
     }
@@ -121,7 +124,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
       if (x.timer_started_at && status !== 'fazendo') { const el = Math.max(0, Math.floor((Date.now() - Date.parse(x.timer_started_at)) / 1000)); n = { ...n, secs: (x.secs || 0) + (el >= 60 ? el : 0), timer_started_at: null } }
       return n
     }))
-    moveCard(c.id, status); notify()
+    toastSave(moveCard(c.id, status), { success: `Movido para ${lifeStatusLabel(status)}` }); notify()
   }
   function performDrop(id, status, targetId, before) {
     setDragId(null); setOverInfo(null); setDragCol(null)
@@ -148,7 +151,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
       }
       return next
     }))
-    if (statusChanged) { moveCard(id, status); notify() }
+    if (statusChanged) { toastSave(moveCard(id, status), { success: `Movido para ${lifeStatusLabel(status)}` }); notify() }
     reorderCards(newList.map(c => c.id))
   }
   // reordenar por botão (sobe/desce dentro da coluna). independe do drag nativo.
@@ -171,7 +174,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
   }
   async function remove(id) {
     setTasks(s => s.filter(c => c.id !== id)); setRituals(s => s.filter(c => c.id !== id))
-    await deleteItem(id)
+    await toastSave(deleteItem(id), { loading: 'Excluindo…', success: 'Demanda excluída' })
   }
   function play(card) {
     if (card.timer_started_at) return
@@ -194,7 +197,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
     const isDone = done.has(id)
     setDone(s => { const n = new Set(s); isDone ? n.delete(id) : n.add(id); return n })
     if (!isDone) { setSkipped(s => { const n = new Set(s); n.delete(id); return n }); burst(host) }
-    toggleRitual(r.id, r.domain_id, key, !isDone)
+    toastSave(toggleRitual(r.id, r.domain_id, key, !isDone), { success: isDone ? 'Desmarcado' : `Feito ${periodLabel(cadenceOf(r))} ✓` })
   }
   function doSkip(r) {
     const cad = cadenceOf(r)
@@ -202,7 +205,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
     const id = `${r.id}|${key}`
     setSkipped(s => { const n = new Set(s); n.add(id); return n })
     setDone(s => { const n = new Set(s); n.delete(id); return n })
-    skipRitual(r.id, r.domain_id, key, cad, true)
+    toastSave(skipRitual(r.id, r.domain_id, key, cad, true), { success: 'Pulada — volta no próximo ciclo' })
   }
   function completeTask(t, host) {
     if ((t.status || 'backlog') === 'concluido') return
@@ -213,7 +216,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
     const status = c.status === 'fazendo' ? 'fazendo' : 'aguardando'
     const patch = { due_at: todayIso, status, config: { ...(c.config || {}), fazer_hoje: true } }
     setTasks(s => s.map(x => x.id === c.id ? { ...x, ...patch } : x))
-    fazerHoje(c.id)
+    toastSave(fazerHoje(c.id), { success: 'Jogado pro Hoje 🎯' })
   }
   function onCreated(item) {
     setCreating(false)

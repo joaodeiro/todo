@@ -4,9 +4,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { DemandDetail } from '../../trabalho/board'
 import { updateLifeItem, moveCard, setBlocked, deleteItem, startTimer, stopTimer, addTime, fazerHoje } from '@/app/actions'
+import { toastSave } from '@/app/toast'
 import { catOf, cadenceLabel, cadenceOf, scheduleLabel, LIFE_CATS, CADENCES, WEEKDAYS, dueLabel } from '@/app/life'
 
 const ORDER = ['backlog', 'aguardando', 'fazendo', 'concluido']
+const STATUS_LABEL = { backlog: 'Backlog', aguardando: 'Aguardando', fazendo: 'Fazendo', concluido: 'Concluído' }
 const todayStr = () => new Date().toLocaleDateString('en-CA')
 
 export function LifeItemPage({ initialCard, domain, domains }) {
@@ -21,15 +23,15 @@ export function LifeItemPage({ initialCard, domain, domains }) {
 
   function setDue(val) {
     setCard(c => ({ ...c, due_at: val ? new Date(val + 'T12:00:00Z').toISOString() : null, config: { ...(c.config || {}), ...(val ? {} : { fazer_hoje: false }) } }))
-    updateLifeItem(card.id, { due_at: val || null })
+    toastSave(updateLifeItem(card.id, { due_at: val || null }), { success: val ? 'Data atualizada' : 'Data removida' })
   }
   function doFazerHoje() {
     setCard(c => ({ ...c, due_at: new Date(todayStr() + 'T12:00:00Z').toISOString(), status: c.status === 'fazendo' ? 'fazendo' : 'aguardando', config: { ...(c.config || {}), fazer_hoje: true } }))
-    fazerHoje(card.id)
+    toastSave(fazerHoje(card.id), { success: 'Jogado pro Hoje 🎯' })
   }
   function setCad(field, val) {
     setCard(c => ({ ...c, config: { ...(c.config || {}), [field]: field === 'weekday' ? Number(val) : val } }))
-    updateLifeItem(card.id, { [field]: val })
+    toastSave(updateLifeItem(card.id, { [field]: val }), { success: 'Recorrência atualizada' })
   }
 
   function setStatus(id, status) {
@@ -41,7 +43,7 @@ export function LifeItemPage({ initialCard, domain, domains }) {
       }
       return next
     })
-    moveCard(id, status)
+    toastSave(moveCard(id, status), { success: `Movido para ${STATUS_LABEL[status]}` })
     try { window.dispatchEvent(new Event('timer-change')) } catch (e) {}
   }
   function move(id, dir) {
@@ -52,13 +54,13 @@ export function LifeItemPage({ initialCard, domain, domains }) {
   function block(c, type, note) {
     const nb = !c.blocked
     setCard(s => ({ ...s, blocked: nb, block_reason: nb ? type : null, block_note: nb ? note : null }))
-    setBlocked(c.id, nb, type, note)
+    toastSave(setBlocked(c.id, nb, type, note), { success: nb ? 'Demanda bloqueada' : 'Demanda desbloqueada' })
   }
   async function save(id, fields) {
     setCard(c => ({ ...c, title: fields.title, notes: fields.contexto || null, domain_id: fields.areaCode || c.domain_id }))
     await updateLifeItem(id, { title: fields.title, contexto: fields.contexto, domainId: fields.areaCode })
   }
-  async function remove(id) { await deleteItem(id); router.push(back) }
+  async function remove(id) { await toastSave(deleteItem(id), { loading: 'Excluindo…', success: 'Demanda excluída' }); router.push(back) }
   function play(c) {
     if (c.timer_started_at) return
     const iso = new Date().toISOString(); setCard(s => ({ ...s, timer_started_at: iso, status: 'fazendo' })); startTimer(c.id)

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { createLifeItem } from '@/app/actions'
+import { toastSave } from '@/app/toast'
 import { LIFE_CATS, CADENCES, WEEKDAYS } from '@/app/life'
 
 // Modal único de criação de demanda da Vida.
@@ -27,7 +28,7 @@ export function CreateItemModal({ areas, domainId, onClose, onCreated }) {
   async function create() {
     if (!title.trim() || !area) return
     setSaving(true)
-    const item = await createLifeItem({ domainId: area, title, notes, category, cadence, weekday, time, due_at: due || null })
+    const item = await toastSave(createLifeItem({ domainId: area, title, notes, category, cadence, weekday, time, due_at: due || null }), { loading: 'Criando…', success: 'Demanda criada' })
     setSaving(false)
     if (item) onCreated(item)
   }
