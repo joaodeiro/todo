@@ -95,6 +95,10 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
   const [dragCol, setDragCol] = useState(null)
   const [dragId, setDragId] = useState(null)
   const [overInfo, setOverInfo] = useState(null)
+  const [quickId, setQuickId] = useState(null) // card com ações rápidas abertas (long-press mobile)
+  const lpTimer = useRef(null)   // timer do long-press
+  const lpFired = useRef(false)  // long-press disparou → suprime o clique que navega
+  const lpStart = useRef(null)   // posição inicial do toque (cancela se rolar)
   const areaCode = {}; (areas || []).forEach(a => { areaCode[a.id] = a.code })
   const codeToId = {}; (areas || []).forEach(a => { codeToId[a.code] = a.id })
 
@@ -162,7 +166,6 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
   async function save(id, fields) {
     const waId = fields.areaCode ? codeToId[fields.areaCode] : null
     setCards(s => s.map(c => c.id === id ? { ...c, title: fields.title, notes: fields.contexto || null, work_area_id: waId } : c))
-    setSelId(null)
     await updateCard(id, { title: fields.title, contexto: fields.contexto, areaCode: fields.areaCode })
   }
   async function remove(id) { setCards(s => s.filter(c => c.id !== id)); setSelId(null); await deleteItem(id) }
@@ -247,7 +250,10 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); const before = e.clientY < r.top + r.height / 2; setOverInfo(o => (o && o.id === c.id && o.before === before) ? o : { id: c.id, before }) }}
                     onDrop={e => { e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); const before = e.clientY < r.top + r.height / 2; performDrop(e.dataTransfer.getData('text/plain') || dragId, col.key, c.id, before) }}
                     onMouseEnter={() => router.prefetch(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}
-                    onClick={() => router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`)}>
+                    onTouchStart={e => { lpFired.current = false; const t = e.touches[0]; lpStart.current = { x: t.clientX, y: t.clientY }; clearTimeout(lpTimer.current); lpTimer.current = setTimeout(() => { lpFired.current = true; try { navigator.vibrate && navigator.vibrate(8) } catch (err) {} setQuickId(c.id) }, 480) }}
+                    onTouchMove={e => { const t = e.touches[0]; if (lpStart.current && (Math.abs(t.clientX - lpStart.current.x) > 10 || Math.abs(t.clientY - lpStart.current.y) > 10)) clearTimeout(lpTimer.current) }}
+                    onTouchEnd={() => clearTimeout(lpTimer.current)}
+                    onClick={e => { if (lpFired.current) { e.preventDefault(); e.stopPropagation(); lpFired.current = false; return } router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`) }}>
                     <div className="kc-top">
                       <span className="kcode">{c.legacy_id || (areaCode[c.work_area_id] || '—')}</span>
                       {c.blocked && (
@@ -294,6 +300,34 @@ export function KanbanBoard({ initialCards, areas, timeTotals, embTotals }) {
         })}
       </div>
       {sel && <CardModal card={sel} now={now} areas={areas} areaCode={areaCode} onClose={() => setSelId(null)} onMove={move} onSetStatus={moveTo} onBlock={toggleBlock} onSave={save} onDelete={remove} onPlay={play} onPause={pause} onAddTime={addManual} />}
+      {quickId && (() => {
+        const c = cards.find(x => x.id === quickId); if (!c) return null
+        const running = !!c.timer_started_at
+        return (
+          <div className="qa-overlay" onClick={() => setQuickId(null)}>
+            <div className="qa-sheet" onClick={e => e.stopPropagation()}>
+              <div className="qa-grip" />
+              <div className="qa-head">
+                <span className="kcode">{c.legacy_id || (areaCode[c.work_area_id] || '—')}</span>
+                <span className="qa-title">{c.title}</span>
+              </div>
+              <div className="qa-sec-lbl">Mudar status</div>
+              <div className="qa-status">
+                {COLS.map(col => (
+                  <button key={col.key} className={`qa-st ${(c.status || 'backlog') === col.key ? 'on' : ''}`}
+                    onClick={() => { moveTo(c.id, col.key); setQuickId(null) }}>{col.label}</button>
+                ))}
+              </div>
+              <div className="qa-actions">
+                <button className="qa-act" onClick={() => { running ? pause(c) : play(c); setQuickId(null) }}>{running ? '⏸ Pausar cronômetro' : '▶ Iniciar cronômetro'}</button>
+                {c.blocked && <button className="qa-act" onClick={() => { toggleBlock(c, null, null); setQuickId(null) }}>🔓 Desbloquear</button>}
+                <button className="qa-act" onClick={() => { setQuickId(null); router.push(`/dashboard/trabalho/${encodeURIComponent(c.legacy_id || c.id)}`) }}>Abrir demanda →</button>
+                <button className="qa-act danger" onClick={() => { setQuickId(null); setConfirmDelId(c.id) }}>Excluir</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
       {creating && <CreateModal areas={areas} onClose={() => setCreating(false)} onCreated={onCreated} />}
       {switchTo && <SwitchTimerModal from={switchTo.from} to={switchTo.to} now={now} onKeep={() => setSwitchTo(null)} onSwitch={() => { doPlay(switchTo.to); setSwitchTo(null) }} />}
     </>
@@ -319,6 +353,20 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
   const [copied, setCopied] = useState(false)
   useEffect(() => { const el = titleRef.current; if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' } }, [title])
   function copyLink() { try { navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch (e) {} }
+
+  // autosave: sem botão "salvar" — persiste título/área/contexto ~700ms depois de parar de editar
+  const [saving, setSaving] = useState(false)
+  const [savedOnce, setSavedOnce] = useState(false)
+  const skipFirstSave = useRef(true)
+  useEffect(() => {
+    if (skipFirstSave.current) { skipFirstSave.current = false; return }
+    setSaving(true)
+    const t = setTimeout(async () => {
+      await onSave(card.id, { title, areaCode: areaSel, contexto })
+      setSaving(false); setSavedOnce(true)
+    }, 700)
+    return () => clearTimeout(t)
+  }, [title, contexto, areaSel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadAtts() {
     const { data } = await supabase.from('attachment').select('*').eq('item_id', card.id).order('created_at')
@@ -409,11 +457,12 @@ export function DemandDetail({ card, now, areas, areaCode, areaOptions, areaCurr
           {card.blocked && <span className="dmd-pill-blk"><Ban /> bloqueado</span>}
         </div>
         <div className="dmd-bar-actions">
+          <span className="dmd-saved">{saving ? 'salvando…' : savedOnce ? '✓ salvo' : ''}</span>
           <button className="dmd-ghost" onClick={copyLink}>{copied ? '✓ copiado' : 'copiar link'}</button>
           {confirmDel ? (
             <><span className="km-confirm">Excluir mesmo?</span><button className="link" onClick={() => setConfirmDel(false)}>não</button><button className="km-del" onClick={() => onDelete(card.id)}>sim, excluir</button></>
           ) : (
-            <><button className="km-del" onClick={() => setConfirmDel(true)}>excluir</button><button className="km-save" onClick={() => onSave(card.id, { title, areaCode: areaSel, contexto })}>salvar</button></>
+            <button className="km-del" onClick={() => setConfirmDel(true)}>excluir</button>
           )}
         </div>
       </div>

@@ -696,3 +696,24 @@ html[data-theme="dark"]{ --logo-accent:#E5A33A }
 /* dia+hora no criar */
 .ci-when{ display:flex; gap:8px }
 .ci-when .sel{ flex:1 } .ci-when input[type=time]{ width:104px; flex:none }
+
+/* indicador de autosave no detalhe da demanda */
+.dmd-saved{ font-size:12px; color:var(--muted); align-self:center; min-width:56px; text-align:right; font-variant-numeric:tabular-nums }
+
+/* ações rápidas do card — abre no long-press (mobile) */
+.kcard{ -webkit-touch-callout:none }
+.qa-overlay{ position:fixed; inset:0; background:rgba(42,39,36,.34); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); z-index:60; display:flex; align-items:flex-end; justify-content:center }
+.qa-sheet{ width:100%; max-width:480px; background:var(--surface); border-radius:20px 20px 0 0; padding:10px 16px calc(18px + env(safe-area-inset-bottom)); box-shadow:0 -18px 50px rgba(42,39,36,.28); animation:qaup 220ms var(--boing) }
+@keyframes qaup{ from{ transform:translateY(100%) } to{ transform:translateY(0) } }
+.qa-grip{ width:38px; height:4px; border-radius:3px; background:var(--line); margin:2px auto 12px }
+.qa-head{ display:flex; align-items:center; gap:8px; margin-bottom:14px; min-width:0 }
+.qa-title{ font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0 }
+.qa-sec-lbl{ font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:7px }
+.qa-status{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:16px }
+.qa-st{ padding:11px 10px; border:.5px solid var(--line); border-radius:11px; background:var(--bg); font:inherit; font-size:13.5px; color:var(--ink); cursor:pointer }
+.qa-st:active{ transform:scale(.97) }
+.qa-st.on{ border-color:var(--heat-a); background:rgba(230,76,40,.1); color:var(--heat-a); font-weight:600 }
+.qa-actions{ display:flex; flex-direction:column; gap:8px }
+.qa-act{ width:100%; text-align:left; padding:12px 14px; border:.5px solid var(--line); border-radius:11px; background:var(--surface); font:inherit; font-size:14px; color:var(--ink); cursor:pointer }
+.qa-act:active{ transform:scale(.99) }
+.qa-act.danger{ color:#DA2037; border-color:rgba(218,32,55,.4) }
