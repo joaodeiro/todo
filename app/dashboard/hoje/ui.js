@@ -211,7 +211,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
   const boardEmpty = boardCards.length === 0
 
   return (
-    <>
+    <div style={{ maxWidth: view === 'lista' ? 760 : 'none', margin: '0 auto' }}>
       <header className="section-head">
         <div className="section-head-l" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
           <h1 className="section-title">Hoje</h1>
@@ -310,7 +310,7 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
       )}
 
       {creating && <CreateItemModal areas={areas || []} onClose={() => setCreating(false)} onCreated={onCreated} />}
-    </>
+    </div>
   )
 }
 

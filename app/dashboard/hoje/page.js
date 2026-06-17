@@ -35,7 +35,7 @@ export default async function Hoje() {
     .sort((a, b) => b.current - a.current)
 
   return (
-    <main className="dash">
+    <main className="dash wide">
       <HojePanel rituals={rituals || []} agenda={agenda || []} doneTasks={doneTasks || []} timeTotals={timeTotals} embTotals={embTotals} ritualEvents={revs || []} skipEvents={skips || []} domMap={domMap} areas={areas} chamas={chamas} />
     </main>
   )
