@@ -46,10 +46,11 @@ function Trash() { return <svg viewBox="0 0 24 24" width="13" height="13" fill="
 function Ban() { return <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m4.9 4.9 14.2 14.2" /></svg> }
 function CheckIcon() { return <svg viewBox="0 0 24 24"><path className="chk" d="M5 12.5l4.5 4.5L19 7" /></svg> }
 
-function HojeRow({ item, domMap, on, onToggle, onSkip, sub }) {
+function HojeRow({ item, domMap, on, onToggle, onSkip, sub, canUp, canDown, onUp, onDown }) {
   const ref = useRef(null)
   const dom = domMap[item.domain_id]
   const canSkip = !!onSkip
+  const canReorder = !!onUp
   return (
     <div ref={ref} className={`hj-row ${on ? 'done' : ''}`}>
       <button className={`rit-check ${on ? 'on' : ''}`} onClick={() => onToggle(item, ref.current)} aria-label={on ? 'desmarcar' : 'concluir'}>
@@ -63,6 +64,16 @@ function HojeRow({ item, domMap, on, onToggle, onSkip, sub }) {
         </div>
       </div>
       {canSkip && !on && <button className="hj-skip" onClick={() => onSkip(item, ref.current)} title="joga pro próximo ciclo">pular ⏭</button>}
+      {canReorder && (
+        <div className="hj-nudge" onClick={e => e.stopPropagation()}>
+          <button type="button" disabled={!canUp} onClick={() => onUp()} aria-label="mover pra cima" title="subir">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
+          </button>
+          <button type="button" disabled={!canDown} onClick={() => onDown()} aria-label="mover pra baixo" title="descer">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -225,11 +236,28 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
     setTasks(s => [...s, decorate(item)])
   }
 
+  // reordenar na lista (mesma lógica das setinhas do kanban): troca a posição
+  // dentro do grupo visível e persiste o sort.
+  function nudgeList(item, dir, list) {
+    const i = list.findIndex(x => x.id === item.id)
+    const j = i + dir
+    if (i < 0 || j < 0 || j >= list.length) return
+    const arr = list.slice()
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t
+    const sortById = {}; arr.forEach((x, k) => { sortById[x.id] = k + 1 })
+    setTasks(s => s.map(c => sortById[c.id] != null ? { ...c, sort: sortById[c.id] } : c))
+    setRituals(s => s.map(c => sortById[c.id] != null ? { ...c, sort: sortById[c.id] } : c))
+    reorderCards(arr.map(x => x.id))
+  }
+
   // ===== derivados pra LISTA =====
   const focoRituals = ritualsHoje.filter(r => pend(r) && isDueToday(r))
   const openRec = ritualsHoje.filter(r => pend(r) && !isDueToday(r))
   const doneTodayDaily = rituals.filter(r => cadenceOf(r) === 'diaria' && ritDoneOf(r))
   const agOpen = tasks.filter(t => (t.status || 'backlog') !== 'concluido')
+  // grupos ordenáveis (setinhas), por sort
+  const foco = [...agOpen, ...focoRituals].sort(bySort)
+  const openRecSorted = [...openRec].sort(bySort)
 
   const dailyTotal = rituals.filter(r => cadenceOf(r) === 'diaria').length
   const dailyDone = doneTodayDaily.length
@@ -273,28 +301,32 @@ export function HojePanel({ rituals: rituals0, agenda: agenda0, doneTasks, timeT
               </div>
             )}
 
-            {(agOpen.length > 0 || focoRituals.length > 0 || doneTodayDaily.length > 0) && (
+            {(foco.length > 0 || doneTodayDaily.length > 0) && (
               <section className="hj-sec">
                 <div className="hj-sech">Pra hoje</div>
-                {agOpen.map(t => {
-                  const due = dueLabel(t.due_at)
-                  return <HojeRow key={t.id} item={t} domMap={domMap} on={false} onToggle={completeTask} sub={markedToday(t) ? '🎯 marcado pra hoje' : `📅 ${due ? due.txt : 'do dia'}`} />
+                {foco.map((it, i) => {
+                  const ritual = isRit(it)
+                  const due = !ritual ? dueLabel(it.due_at) : null
+                  const sub = ritual
+                    ? `🔁 ${cadenceOf(it) === 'diaria' ? 'rotina diária' : (scheduleLabel(it) || cadenceLabel(cadenceOf(it)))}`
+                    : (markedToday(it) ? '🎯 marcado pra hoje' : `📅 ${due ? due.txt : 'do dia'}`)
+                  return <HojeRow key={it.id} item={it} domMap={domMap} on={false}
+                    onToggle={ritual ? flipRitual : completeTask} onSkip={ritual ? doSkip : undefined}
+                    canUp={i > 0} canDown={i < foco.length - 1} onUp={() => nudgeList(it, -1, foco)} onDown={() => nudgeList(it, 1, foco)}
+                    sub={sub} />
                 })}
-                {focoRituals.map(r => (
-                  <HojeRow key={r.id} item={r} domMap={domMap} on={false} onToggle={flipRitual} onSkip={doSkip}
-                    sub={`🔁 ${cadenceOf(r) === 'diaria' ? 'rotina diária' : (scheduleLabel(r) || cadenceLabel(cadenceOf(r)))}`} />
-                ))}
                 {doneTodayDaily.map(r => (
                   <HojeRow key={r.id} item={r} domMap={domMap} on={true} onToggle={flipRitual} sub="🔁 feito hoje" />
                 ))}
               </section>
             )}
 
-            {openRec.length > 0 && (
+            {openRecSorted.length > 0 && (
               <section className="hj-sec">
                 <div className="hj-sech">Recorrentes em aberto</div>
-                {openRec.map(r => (
+                {openRecSorted.map((r, i) => (
                   <HojeRow key={r.id} item={r} domMap={domMap} on={false} onToggle={flipRitual} onSkip={doSkip}
+                    canUp={i > 0} canDown={i < openRecSorted.length - 1} onUp={() => nudgeList(r, -1, openRecSorted)} onDown={() => nudgeList(r, 1, openRecSorted)}
                     sub={`🔁 ${cadenceLabel(cadenceOf(r))} · ${scheduleLabel(r) || periodLabel(cadenceOf(r))}`} />
                 ))}
               </section>
