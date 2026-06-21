@@ -531,6 +531,7 @@ a.km-src{ color:var(--heat-b) }
 :root, html[data-theme="cream"], html[data-theme="light"]{ --logo-accent:#E64C28 }
 html[data-theme="dark"]{ --logo-accent:#F2A65A }
 .side-logo{ background:none; box-shadow:none; border-radius:0; width:auto; height:40px }
+.side-logo svg, .lg-brand svg{ filter:drop-shadow(0 3px 9px rgba(216,60,30,.22)) }
 .lg-logo{ display:flex; justify-content:center; margin-bottom:20px }
 
 /* wordmark ZenFlow (serifa Newsreader, estilo editorial) */
@@ -600,7 +601,8 @@ html[data-theme="dark"]{ --logo-accent:#F2A65A }
 .rit-gs{ font-size:12px; color:var(--muted) }
 .rit-row{ display:flex; align-items:center; gap:12px; padding:11px 8px; border-radius:10px; transition:background .1s }
 .rit-row:hover{ background:rgba(140,134,124,.06) }
-.rit-check{ position:relative; flex:none; width:26px; height:26px; border-radius:8px; border:2px solid rgba(42,39,36,.22); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:border-color .15s,background .15s }
+.rit-check{ position:relative; flex:none; width:26px; height:26px; border-radius:8px; border:2px solid rgba(140,134,124,.55); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:border-color .15s,background .15s }
+.rit-check:hover{ border-color:var(--heat-a) }
 .rit-check svg{ width:15px; height:15px }
 .rit-check .chk{ stroke:#fff; stroke-width:2.6; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:22; stroke-dashoffset:22 }
 .rit-check.on{ background:var(--heat-a); border-color:var(--heat-a) }
