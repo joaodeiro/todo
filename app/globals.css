@@ -531,7 +531,7 @@ a.km-src{ color:var(--heat-b) }
 :root, html[data-theme="cream"], html[data-theme="light"]{ --logo-accent:#E64C28 }
 html[data-theme="dark"]{ --logo-accent:#F2A65A }
 .side-logo{ background:none; box-shadow:none; border-radius:0; width:auto; height:40px }
-.side-logo svg, .lg-brand svg{ filter:drop-shadow(0 3px 9px rgba(216,60,30,.22)) }
+.side-logo img, .lg-brand img, .side-logo svg, .lg-brand svg{ filter:drop-shadow(0 3px 9px rgba(216,60,30,.22)) }
 .lg-logo{ display:flex; justify-content:center; margin-bottom:20px }
 
 /* wordmark ZenFlow (serifa Newsreader, estilo editorial) */
